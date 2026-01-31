@@ -17,7 +17,7 @@ export default {
                 },
             },
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif'],
+                sans: ['Playfair Display', 'serif'],
             },
             animation: {
                 'fadeInUp': 'fadeInUp 1s ease-out forwards',
