@@ -28,7 +28,7 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
         <div className="flex justify-between items-center h-24">
           {/* Logo - Far Left */}
           <Link to="/" className="flex items-center space-x-3 group flex-shrink-0">
-            <span className="text-3xl font-bold bg-gradient-to-r from-scribe-green via-[#7a8861] to-scribe-sage bg-clip-text text-transparent">
+            <span className="text-3xl font-bold bg-gradient-to-r from-scribe-green via-[#7a8861] to-scribe-sage bg-clip-text text-transparent font-[var(--font-editorial)]">
               Scribe
             </span>
           </Link>
@@ -141,5 +141,3 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
 };
 
 export default Navbar;
-
-
