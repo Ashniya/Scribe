@@ -4,6 +4,11 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Feather, Users, Target, Heart, Sparkles, BookOpen, PenTool, Linkedin, TrendingUp, Award, Zap } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { ThemeContext } from '../context/ThemeContext';
+import AditiImg from '../assets/Aditi.jpeg';
+import AshniyaImg from '../assets/Ashniya.jpeg';
+import SurakshaImg from '../assets/Suraksha.jpeg';
+import TaniyaImg from '../assets/Taniya.jpeg';
+
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -88,13 +93,13 @@ const About = () => {
         const sidebarHeight = sidebarRef.current.scrollHeight;
         const viewportHeight = window.innerHeight;
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
+
         // Calculate reverse position
         const maxScroll = mainHeight - viewportHeight;
         const sidebarMaxScroll = sidebarHeight - viewportHeight;
         const scrollRatio = scrollTop / maxScroll;
         const sidebarScroll = sidebarMaxScroll * (1 - scrollRatio);
-        
+
         sidebarRef.current.style.transform = `translateY(-${sidebarScroll}px)`;
       }
     };
@@ -105,29 +110,29 @@ const About = () => {
 
   const teamMembers = [
     {
-      name: 'Member Name 1',
-      role: 'Lead Developer',
-      linkedin: 'https://linkedin.com/in/username',
+      name: 'Aditi Verma',
+      linkedin: 'https://www.linkedin.com/in/aditiverma123/',
+      photo: AditiImg,
     },
     {
-      name: 'Member Name 2',
-      role: 'Full Stack Developer',
-      linkedin: 'https://linkedin.com/in/username',
+      name: 'Ashniya Alosious',
+      linkedin: 'https://www.linkedin.com/in/ashniya-alosious/',
+      photo: AshniyaImg,
     },
     {
-      name: 'Member Name 3',
-      role: 'Frontend Developer',
-      linkedin: 'https://linkedin.com/in/username',
+      name: 'Suraksha Sharma',
+      linkedin: 'https://www.linkedin.com/in/suraksha-sharma/',
+      photo: SurakshaImg,
     },
     {
-      name: 'Member Name 4',
-      role: 'Backend Developer',
-      linkedin: 'https://linkedin.com/in/username',
+      name: 'Taniya',
+      linkedin: 'https://www.linkedin.com/in/taniya20678',
+      photo: TaniyaImg,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-scribe-cream dark:bg-slate-900">
+    <div className="min-h-scregen bg-scribe-cream dark:bg-slate-900">
       <Navbar showNavbar={true} />
 
       <div className="flex pt-24">
@@ -259,8 +264,15 @@ const About = () => {
                     {/* Photo Placeholder */}
                     <div className="mb-6 flex justify-center">
                       <div className="w-32 h-32 rounded-full bg-gradient-to-br from-scribe-green to-scribe-mint dark:from-scribe-sage dark:to-scribe-mint flex items-center justify-center overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg">
-                        {/* Add your photo here with: <img src="path" alt={member.name} className="w-full h-full object-cover" /> */}
-                        <Users size={48} className="text-white" />
+                        {member.photo ? (
+                          <img
+                            src={member.photo}
+                            alt={member.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Users size={48} className="text-white" />
+                        )}
                       </div>
                     </div>
 
@@ -270,7 +282,7 @@ const About = () => {
                         {member.name}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">{member.role}</p>
-                      
+
                       {/* LinkedIn Link */}
                       <a
                         href={member.linkedin}
@@ -317,7 +329,7 @@ const About = () => {
             {/* Why Choose Us */}
             <div className="space-y-6">
               <h3 className="text-3xl font-bold text-white text-center mb-10">Why Choose Scribe?</h3>
-              
+
               <div className="flex items-start space-x-4">
                 <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
                   <Zap size={24} className="text-white" />
@@ -363,7 +375,7 @@ const About = () => {
             {/* Stats Section */}
             <div className="space-y-8">
               <h3 className="text-3xl font-bold text-white text-center mb-10">Our Impact</h3>
-              
+
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center transform hover:scale-105 transition-transform duration-300">
                 <div className="text-5xl font-bold text-white mb-3">10K+</div>
                 <div className="text-white/80 text-base">Active Writers</div>
@@ -386,44 +398,44 @@ const About = () => {
                 <svg width="220" height="260" viewBox="0 0 220 260" className="drop-shadow-2xl">
                   {/* Document */}
                   <rect x="30" y="15" width="160" height="230" fill="white" fillOpacity="0.95" rx="10" />
-                  
+
                   {/* Header */}
-                  <rect x="30" y="15" width="160" height="45" fill={isDark ? "#9CAB84" : "#89986d"} fillOpacity="0.3" rx="10"/>
-                  <circle cx="50" cy="37" r="6" fill="white" opacity="0.7"/>
-                  <circle cx="68" cy="37" r="6" fill="white" opacity="0.7"/>
-                  <circle cx="86" cy="37" r="6" fill="white" opacity="0.7"/>
-                  
+                  <rect x="30" y="15" width="160" height="45" fill={isDark ? "#9CAB84" : "#89986d"} fillOpacity="0.3" rx="10" />
+                  <circle cx="50" cy="37" r="6" fill="white" opacity="0.7" />
+                  <circle cx="68" cy="37" r="6" fill="white" opacity="0.7" />
+                  <circle cx="86" cy="37" r="6" fill="white" opacity="0.7" />
+
                   {/* Animated Lines */}
                   <g className="typing-animation">
                     <line x1="50" y1="85" x2="50" y2="85" stroke={isDark ? "#9CAB84" : "#89986d"} strokeWidth="3" strokeLinecap="round">
-                      <animate attributeName="x2" from="50" to="170" dur="2.5s" fill="freeze" repeatCount="indefinite"/>
+                      <animate attributeName="x2" from="50" to="170" dur="2.5s" fill="freeze" repeatCount="indefinite" />
                     </line>
                     <line x1="50" y1="115" x2="50" y2="115" stroke={isDark ? "#9CAB84" : "#89986d"} strokeWidth="3" strokeLinecap="round">
-                      <animate attributeName="x2" from="50" to="180" dur="2.5s" begin="0.6s" fill="freeze" repeatCount="indefinite"/>
+                      <animate attributeName="x2" from="50" to="180" dur="2.5s" begin="0.6s" fill="freeze" repeatCount="indefinite" />
                     </line>
                     <line x1="50" y1="145" x2="50" y2="145" stroke={isDark ? "#C5D89D" : "#9cab84"} strokeWidth="3" strokeLinecap="round">
-                      <animate attributeName="x2" from="50" to="150" dur="2.5s" begin="1.2s" fill="freeze" repeatCount="indefinite"/>
+                      <animate attributeName="x2" from="50" to="150" dur="2.5s" begin="1.2s" fill="freeze" repeatCount="indefinite" />
                     </line>
                     <line x1="50" y1="175" x2="50" y2="175" stroke={isDark ? "#C5D89D" : "#9cab84"} strokeWidth="3" strokeLinecap="round">
-                      <animate attributeName="x2" from="50" to="175" dur="2.5s" begin="1.8s" fill="freeze" repeatCount="indefinite"/>
+                      <animate attributeName="x2" from="50" to="175" dur="2.5s" begin="1.8s" fill="freeze" repeatCount="indefinite" />
                     </line>
-                    
+
                     {/* Cursor */}
                     <rect x="50" y="202" width="3" height="20" fill={isDark ? "#9CAB84" : "#89986d"}>
-                      <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
-                      <animate attributeName="x" from="50" to="130" dur="2.5s" begin="2.4s" fill="freeze" repeatCount="indefinite"/>
+                      <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite" />
+                      <animate attributeName="x" from="50" to="130" dur="2.5s" begin="2.4s" fill="freeze" repeatCount="indefinite" />
                     </rect>
                     <line x1="50" y1="212" x2="50" y2="212" stroke={isDark ? "#9CAB84" : "#89986d"} strokeWidth="3" strokeLinecap="round">
-                      <animate attributeName="x2" from="50" to="130" dur="2.5s" begin="2.4s" fill="freeze" repeatCount="indefinite"/>
+                      <animate attributeName="x2" from="50" to="130" dur="2.5s" begin="2.4s" fill="freeze" repeatCount="indefinite" />
                     </line>
                   </g>
-                  
+
                   {/* Decorative Corner */}
-                  <circle cx="175" cy="225" r="12" fill="white" opacity="0.4"/>
-                  <circle cx="158" cy="210" r="8" fill="white" opacity="0.4"/>
+                  <circle cx="175" cy="225" r="12" fill="white" opacity="0.4" />
+                  <circle cx="158" cy="210" r="8" fill="white" opacity="0.4" />
                 </svg>
               </div>
-              
+
               <p className="text-white/70 text-center text-base mt-6 italic font-medium">
                 "Where words come to life"
               </p>
