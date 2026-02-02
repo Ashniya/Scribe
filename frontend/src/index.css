@@ -151,6 +151,7 @@ body {
 }
 
 /* Custom Scrollbar */
+
 ::-webkit-scrollbar {
   width: 10px;
 }
@@ -248,4 +249,11 @@ body {
 .animation-delay-1500 {
   animation-delay: 1.5s;
   opacity: 0;
-}
+} 
+
+
+
+
+
+
+
