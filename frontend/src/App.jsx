@@ -8,6 +8,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
 import About from './pages/About';
+import LoginPromptModal from './components/LoginPromptModal'
 
 function App() {
   return (
@@ -38,9 +39,7 @@ function App() {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
+                <Dashboard />
               }
             />
 
