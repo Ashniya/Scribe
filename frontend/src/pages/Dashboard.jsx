@@ -748,9 +748,12 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
+import { auth } from '../config/firebase.js';
 import Editor from '../components/Editor';
+import ArticleView from '../components/ArticleView';
 import ProfileSettings from '../components/ProfileSettings';
 import LoginPromptModal from '../components/LoginPromptModal';
+import FollowingPreferencesModal from '../components/FollowingPreferencesModal';
 import {
   Home,
   PenTool,
@@ -771,7 +774,11 @@ import {
   ChevronRight,
   Menu,
   X,
-  User
+  User,
+  MoreVertical,
+  UserPlus,
+  VolumeX,
+  Flag
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -795,6 +802,10 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [staffPicks, setStaffPicks] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState(null);
+  const [followingAuthor, setFollowingAuthor] = useState(null);
 
   const handleLogout = async () => {
     try {
@@ -815,13 +826,61 @@ export default function Dashboard() {
     action();
   };
 
+  // Helper to get Firebase token
+  const getToken = async () => {
+    const user = auth.currentUser;
+    if (!user) return null;
+    return await user.getIdToken(true);
+  };
+
+  // Like handler for blog cards
+  const handleLike = async (blogId) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const res = await fetch(`http://localhost:5000/api/blogs/${blogId}/like`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Update blogs state with new like count
+        setBlogs(prev => prev.map(b =>
+          b._id === blogId
+            ? {
+              ...b, likes: data.data.isLiked
+                ? [...(b.likes || []), currentUser?.uid]
+                : (b.likes || []).filter(id => id !== currentUser?.uid),
+              likescount: data.data.likes
+            }
+            : b
+        ));
+      }
+    } catch (error) {
+      console.error('Like error:', error);
+    }
+  };
+
+  // Saved/bookmarked blogs state
+  const [savedBlogs, setSavedBlogs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('savedBlogs') || '[]'); } catch { return []; }
+  });
+
+  const handleSave = (blogId) => {
+    setSavedBlogs(prev => {
+      const updated = prev.includes(blogId)
+        ? prev.filter(id => id !== blogId)
+        : [...prev, blogId];
+      localStorage.setItem('savedBlogs', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   // Fetch data from backend
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
-
-        // Fetch all blogs for home feed
+        // Fetch all blogs for home feed (public, no token needed)
         const blogsRes = await fetch('http://localhost:5000/api/blogs');
         const blogsData = await blogsRes.json();
         if (blogsData.success) {
@@ -829,6 +888,7 @@ export default function Dashboard() {
         }
 
         // Fetch user's blogs and stats if logged in
+        const token = await getToken();
         if (token) {
           const myBlogsRes = await fetch('http://localhost:5000/api/blogs/user/my-blogs', {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -856,29 +916,23 @@ export default function Dashboard() {
     fetchData();
   }, [showEditor]); // Refetch when returning from editor
 
-  const staffPicks = [
-    {
-      id: 1,
-      title: 'Why Americans Fortify Their Lives—And the Public Places That Heal the Divide',
-      author: 'A Brother\'s Sister',
-      image: 'https://i.pravatar.cc/150?img=4',
-      time: '5d ago'
-    },
-    {
-      id: 2,
-      title: 'Amazon Thinks I\'m Russian: The Quiet Occupation of My Keyboard',
-      author: 'Barack Obama',
-      image: 'https://i.pravatar.cc/150?img=5',
-      time: 'Jan 21'
-    },
-    {
-      id: 3,
-      title: 'A Wake-Up Call for Every American',
-      author: 'User Name',
-      image: 'https://i.pravatar.cc/150?img=6',
-      time: 'Jan 25'
+  // Populate staff picks from top liked blogs
+  useEffect(() => {
+    if (blogs.length > 0) {
+      const topPicks = [...blogs]
+        .sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0))
+        .slice(0, 3)
+        .map(blog => ({
+          id: blog._id,
+          title: blog.title,
+          author: blog.authorName,
+          image: blog.authorPhotoURL || null,
+          time: new Date(blog.publishedAt || blog.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          blog: blog // Store full blog object for click handling
+        }));
+      setStaffPicks(topPicks);
     }
-  ];
+  }, [blogs]);
 
   // Render content based on active section
   const renderSectionContent = () => {
@@ -978,22 +1032,88 @@ export default function Dashboard() {
             <p className={`text-gray-500`}>Writers and publications you follow will appear here</p>
           </div>
         );
-      case 'favorites':
+      case 'favorites': {
+        const likedBlogs = blogs.filter(b => b.likes?.includes(currentUser?.uid));
         return (
-          <div className="text-center py-20">
-            <Heart className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
-            <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Favorites</h2>
-            <p className={`text-gray-500`}>Articles you've liked will appear here</p>
+          <div>
+            <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <Heart className="w-6 h-6 inline mr-2 text-red-500" />
+              Favorites
+            </h2>
+            {likedBlogs.length === 0 ? (
+              <div className="text-center py-16">
+                <Heart className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
+                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No liked articles yet</p>
+                <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  Click the ❤️ on articles you enjoy
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {likedBlogs.map((blog) => (
+                  <ArticleCard key={blog._id} article={{
+                    id: blog._id,
+                    title: blog.title,
+                    excerpt: blog.excerpt,
+                    author: blog.authorName,
+                    authorImage: blog.authorPhotoURL || null,
+                    category: blog.category,
+                    image: blog.coverImage,
+                    readTime: `${blog.readTime} min read`,
+                    date: new Date(blog.publishedAt || blog.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    claps: blog.likes?.length || 0,
+                    comments: blog.commentscount || 0,
+                    views: blog.views,
+                    isLiked: true,
+                    isSaved: savedBlogs.includes(blog._id)
+                  }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => setSelectedArticle(blog)} onFollowAuthor={setFollowingAuthor} />
+                ))}
+              </div>
+            )}
           </div>
         );
-      case 'collections':
+      }
+      case 'collections': {
+        const collectionBlogs = blogs.filter(b => savedBlogs.includes(b._id));
         return (
-          <div className="text-center py-20">
-            <Bookmark className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
-            <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Collections</h2>
-            <p className={`text-gray-500`}>Your saved collections will appear here</p>
+          <div>
+            <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <Bookmark className="w-6 h-6 inline mr-2 text-scribe-green" />
+              Collections
+            </h2>
+            {collectionBlogs.length === 0 ? (
+              <div className="text-center py-16">
+                <Bookmark className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
+                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No saved articles yet</p>
+                <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  Click the 🔖 bookmark on articles to save them
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {collectionBlogs.map((blog) => (
+                  <ArticleCard key={blog._id} article={{
+                    id: blog._id,
+                    title: blog.title,
+                    excerpt: blog.excerpt,
+                    author: blog.authorName,
+                    authorImage: blog.authorPhotoURL || null,
+                    category: blog.category,
+                    image: blog.coverImage,
+                    readTime: `${blog.readTime} min read`,
+                    date: new Date(blog.publishedAt || blog.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    claps: blog.likes?.length || 0,
+                    comments: blog.commentscount || 0,
+                    views: blog.views,
+                    isLiked: blog.likes?.includes(currentUser?.uid),
+                    isSaved: true
+                  }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => setSelectedArticle(blog)} onFollowAuthor={setFollowingAuthor} />
+                ))}
+              </div>
+            )}
           </div>
         );
+      }
       case 'notifications':
         return (
           <div className="text-center py-20">
@@ -1027,6 +1147,22 @@ export default function Dashboard() {
     }
   };
 
+  // Show Article View if an article is selected
+  if (selectedArticle) {
+    return (
+      <ArticleView
+        article={selectedArticle}
+        isDark={isDark}
+        onClose={() => setSelectedArticle(null)}
+        onLike={() => handleLike(selectedArticle._id)}
+        onSave={() => handleSave(selectedArticle._id)}
+        isLiked={selectedArticle.likes?.includes(currentUser?.uid)}
+        isSaved={savedBlogs.includes(selectedArticle._id)}
+        currentUser={currentUser}
+      />
+    );
+  }
+
   // Show Editor if Write button clicked
   if (showEditor) {
     return <Editor onClose={() => setShowEditor(false)} isDark={isDark} />;
@@ -1039,6 +1175,22 @@ export default function Dashboard() {
         onClose={() => setShowLoginPrompt(false)}
         isDark={isDark}
       />
+
+      {followingAuthor && (
+        <FollowingPreferencesModal
+          author={followingAuthor}
+          isDark={isDark}
+          onClose={() => setFollowingAuthor(null)}
+          onSave={(preferences) => {
+            if (preferences.isUnfollowing) {
+              alert(`Unfollowed ${followingAuthor.name}`);
+            } else {
+              alert(`Following ${followingAuthor.name} with email notifications ${preferences.emailNotifications}`);
+            }
+            setFollowingAuthor(null);
+          }}
+        />
+      )}
 
       <div className={`min-h-screen ${isDark ? 'dark bg-slate-900' : 'bg-white'} transition-colors duration-300 ${showLoginPrompt ? 'blur-sm pointer-events-none' : ''
         }`}>
@@ -1345,21 +1497,29 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Left Column - Main Feed */}
                   <div className="lg:col-span-2">
-                    {/* Tabs */}
                     <div className={`flex gap-6 mb-8 border-b ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
                       <button
                         onClick={() => setActiveTab('for-you')}
                         className={`pb-3 px-1 font-medium transition ${activeTab === 'for-you'
-                          ? `border-b ${isDark ? 'border-white text-white' : 'border-gray-900 text-gray-900'}`
+                          ? `border-b-2 ${isDark ? 'border-white text-white' : 'border-gray-900 text-gray-900'}`
                           : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
                           }`}
                       >
                         For you
                       </button>
                       <button
+                        onClick={() => setActiveTab('featured')}
+                        className={`pb-3 px-1 font-medium transition ${activeTab === 'featured'
+                          ? `border-b-2 ${isDark ? 'border-white text-white' : 'border-gray-900 text-gray-900'}`
+                          : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                      >
+                        Featured
+                      </button>
+                      <button
                         onClick={() => setActiveTab('following')}
                         className={`pb-3 px-1 font-medium transition ${activeTab === 'following'
-                          ? `border-b ${isDark ? 'border-white text-white' : 'border-gray-900 text-gray-900'}`
+                          ? `border-b-2 ${isDark ? 'border-white text-white' : 'border-gray-900 text-gray-900'}`
                           : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
                           }`}
                       >
@@ -1377,24 +1537,71 @@ export default function Dashboard() {
                         <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                           No articles yet. Be the first to publish!
                         </div>
-                      ) : (
-                        blogs.map((blog) => (
-                          <ArticleCard key={blog._id} article={{
-                            id: blog._id,
-                            title: blog.title,
-                            excerpt: blog.excerpt,
-                            author: blog.authorName,
-                            authorImage: 'https://i.pravatar.cc/150?img=' + (blog.authorName.charCodeAt(0) % 10),
-                            category: blog.category,
-                            image: blog.coverImage,
-                            readTime: `${blog.readTime} min read`,
-                            date: new Date(blog.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                            claps: blog.likes.length,
-                            comments: 0,
-                            views: blog.views
-                          }} isDark={isDark} onProtectedAction={handleProtectedAction} />
-                        ))
-                      )}
+                      ) : (() => {
+                        // Filter by category first
+                        let filteredBlogs = categoryFilter
+                          ? blogs.filter(b => b.category === categoryFilter)
+                          : blogs;
+
+                        // Then filter by active tab
+                        if (activeTab === 'featured') {
+                          // Sort by views and likes for featured
+                          filteredBlogs = [...filteredBlogs].sort((a, b) => {
+                            const scoreA = (a.views || 0) + (a.likes?.length || 0) * 10;
+                            const scoreB = (b.views || 0) + (b.likes?.length || 0) * 10;
+                            return scoreB - scoreA;
+                          });
+                        } else if (activeTab === 'following') {
+                          // For now, show empty state for following
+                          return (
+                            <div className={`text-center py-16 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                              <Users className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
+                              <p className="text-lg mb-2">Follow authors to see their stories here</p>
+                              <p className="text-sm">Click the three dots on any article and select "Follow author"</p>
+                            </div>
+                          );
+                        }
+                        // 'for-you' shows all (default)
+
+                        return filteredBlogs.length === 0 ? (
+                          <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <p className="mb-2">No articles found in "{categoryFilter}"</p>
+                            <button
+                              onClick={() => setCategoryFilter(null)}
+                              className="text-scribe-green hover:text-scribe-sage text-sm underline"
+                            >
+                              Show all articles
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            {categoryFilter && (
+                              <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Showing {filteredBlogs.length} article{filteredBlogs.length !== 1 ? 's' : ''} in <strong className={isDark ? 'text-white' : 'text-gray-900'}>{categoryFilter}</strong>
+                              </div>
+                            )}
+                            {filteredBlogs.map((blog) => (
+                              <ArticleCard key={blog._id} article={{
+                                id: blog._id,
+                                title: blog.title,
+                                excerpt: blog.excerpt,
+                                author: blog.authorName,
+                                authorImage: blog.authorPhotoURL || currentUser?.photoURL || null,
+                                authorEmail: blog.authorEmail,
+                                category: blog.category,
+                                image: blog.coverImage,
+                                readTime: `${blog.readTime} min read`,
+                                date: new Date(blog.publishedAt || blog.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                                claps: blog.likes?.length || blog.likescount || 0,
+                                comments: blog.commentscount || 0,
+                                views: blog.views,
+                                isLiked: blog.likes?.includes(currentUser?.uid),
+                                isSaved: savedBlogs.includes(blog._id)
+                              }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => setSelectedArticle(blog)} onFollowAuthor={setFollowingAuthor} />
+                            ))}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -1415,33 +1622,45 @@ export default function Dashboard() {
                     <div>
                       <h3 className={`font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Staff Picks</h3>
                       <div className="space-y-4">
-                        {staffPicks.map((pick) => (
-                          <StaffPickCard key={pick.id} pick={pick} isDark={isDark} onProtectedAction={handleProtectedAction} />
-                        ))}
+                        {staffPicks.length > 0 ? (
+                          staffPicks.map((pick) => (
+                            <StaffPickCard key={pick.id} pick={pick} isDark={isDark} onArticleClick={setSelectedArticle} />
+                          ))
+                        ) : (
+                          <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            No staff picks yet. Like articles to see them featured here!
+                          </p>
+                        )}
                       </div>
-                      <button className={`mt-4 text-sm font-medium flex items-center gap-1 ${isDark ? 'text-scribe-mint hover:text-scribe-sage' : 'text-scribe-green hover:text-scribe-sage'}`}>
-                        See the full list
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
                     </div>
 
                     {/* Topics */}
                     <div>
                       <h3 className={`font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Recommended topics</h3>
                       <div className="flex flex-wrap gap-2">
-                        {['Self Improvement', 'Productivity', 'Writing', 'Technology', 'Health'].map((topic) => (
+                        {['General', 'Technology', 'Health', 'Writing', 'Productivity'].map((topic) => (
                           <button
                             key={topic}
-                            onClick={() => handleProtectedAction(() => alert(`Filtering by topic: ${topic}\n\nTopic filtering coming soon!`))}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition ${isDark
-                              ? 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            onClick={() => setCategoryFilter(categoryFilter === topic ? null : topic)}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition ${categoryFilter === topic
+                              ? 'bg-gradient-to-r from-scribe-green to-scribe-sage text-white'
+                              : isDark
+                                ? 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                               }`}
                           >
                             {topic}
                           </button>
                         ))}
                       </div>
+                      {categoryFilter && (
+                        <button
+                          onClick={() => setCategoryFilter(null)}
+                          className={`mt-3 text-xs ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                          Clear filter
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1475,42 +1694,143 @@ function NavItem({ icon: Icon, label, active, badge, onClick, isDark }) {
   );
 }
 
-function ArticleCard({ article, isDark, onProtectedAction }) {
+function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArticleClick, onFollowAuthor }) {
+  const [showMenu, setShowMenu] = useState(false);
+
   const handleArticleClick = () => {
+    if (onArticleClick) {
+      onArticleClick();
+    }
+  };
+
+  // Generate initials for fallback avatar
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.charAt(0).toUpperCase();
+  };
+
+  const handleMenuAction = (action) => {
+    setShowMenu(false);
     onProtectedAction(() => {
-      console.log('Opening article:', article.title);
-      alert(`Opening: ${article.title}\n\nArticle details page coming soon!`);
+      switch (action) {
+        case 'follow-author':
+          if (onFollowAuthor) {
+            onFollowAuthor({
+              name: article.author,
+              photoURL: article.authorImage
+            });
+          }
+          break;
+        case 'follow-publication':
+          alert(`Following ${article.category}`);
+          break;
+        case 'mute-author':
+          alert(`Muted ${article.author}`);
+          break;
+        case 'mute-publication':
+          alert(`Muted ${article.category}`);
+          break;
+        case 'report':
+          alert('Report submitted. Thank you for helping keep our community safe.');
+          break;
+      }
     });
   };
 
   return (
     <div
-      onClick={handleArticleClick}
       className={`group cursor-pointer border-b pb-8 ${isDark ? 'border-slate-700' : 'border-gray-200'} hover:opacity-80 transition`}
     >
       <div className="flex gap-6">
         <div className="flex-1">
-          {/* Author */}
-          <div className="flex items-center gap-2 mb-3">
-            <img
-              src={article.authorImage}
-              alt={article.author}
-              className="w-6 h-6 rounded-full"
-            />
-            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              {article.author}
-            </span>
-            <span className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>in</span>
-            <span className="text-sm font-medium text-scribe-green">{article.category}</span>
+          {/* Author + Menu */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2" onClick={handleArticleClick}>
+              {article.authorImage ? (
+                <img
+                  src={article.authorImage}
+                  alt={article.author}
+                  className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-slate-600"
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                />
+              ) : null}
+              <div
+                className={`w-7 h-7 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-xs flex-shrink-0`}
+                style={{ display: article.authorImage ? 'none' : 'flex' }}
+              >
+                {getInitials(article.author)}
+              </div>
+              <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                {article.author}
+              </span>
+              <span className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>in</span>
+              <span className="text-sm font-medium text-scribe-green">{article.category}</span>
+            </div>
+
+            {/* Three-dot menu */}
+            <div className="relative">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                className={`p-1 rounded-full transition ${isDark ? 'hover:bg-slate-800 text-gray-500' : 'hover:bg-gray-100 text-gray-400'}`}
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+
+              {/* Dropdown menu */}
+              {showMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                  <div className={`absolute right-0 top-8 z-20 w-56 rounded-lg shadow-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                    <button
+                      onClick={() => handleMenuAction('follow-author')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span className="text-sm">Follow author</span>
+                    </button>
+                    <button
+                      onClick={() => handleMenuAction('follow-publication')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span className="text-sm">Follow publication</span>
+                    </button>
+                    <div className={`border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`} />
+                    <button
+                      onClick={() => handleMenuAction('mute-author')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                    >
+                      <VolumeX className="w-4 h-4" />
+                      <span className="text-sm">Mute author</span>
+                    </button>
+                    <button
+                      onClick={() => handleMenuAction('mute-publication')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                    >
+                      <VolumeX className="w-4 h-4" />
+                      <span className="text-sm">Mute publication</span>
+                    </button>
+                    <div className={`border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`} />
+                    <button
+                      onClick={() => handleMenuAction('report')}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition rounded-b-lg"
+                    >
+                      <Flag className="w-4 h-4" />
+                      <span className="text-sm">Report story...</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Title */}
-          <h2 className={`text-xl font-bold mb-2 line-clamp-2 group-hover:text-scribe-green transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <h2 onClick={handleArticleClick} className={`text-xl font-bold mb-2 line-clamp-2 group-hover:text-scribe-green transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
             {article.title}
           </h2>
 
           {/* Excerpt */}
-          <p className={`text-base mb-4 line-clamp-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p onClick={handleArticleClick} className={`text-base mb-4 line-clamp-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             {article.excerpt}
           </p>
 
@@ -1520,16 +1840,22 @@ function ArticleCard({ article, isDark, onProtectedAction }) {
             <span>·</span>
             <span>{article.readTime}</span>
             <span>·</span>
-            <span className="flex items-center gap-1">
-              <Heart className="w-4 h-4" />
-              {article.claps.toLocaleString()}
-            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onProtectedAction(() => onLike && onLike()); }}
+              className={`flex items-center gap-1 transition-colors hover:text-red-500 ${article.isLiked ? 'text-red-500' : ''}`}
+            >
+              <Heart className={`w-4 h-4 ${article.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+              {(article.claps || 0).toLocaleString()}
+            </button>
             <span className="flex items-center gap-1">
               <MessageSquare className="w-4 h-4" />
               {article.comments}
             </span>
-            <button className="ml-auto">
-              <Bookmark className={`w-5 h-5 ${isDark ? 'text-gray-600 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`} />
+            <button
+              onClick={(e) => { e.stopPropagation(); onProtectedAction(() => onSave && onSave()); }}
+              className={`ml-auto transition-colors ${article.isSaved ? 'text-scribe-green' : ''}`}
+            >
+              <Bookmark className={`w-5 h-5 ${article.isSaved ? 'fill-scribe-green text-scribe-green' : isDark ? 'text-gray-600 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`} />
             </button>
           </div>
         </div>
@@ -1537,6 +1863,7 @@ function ArticleCard({ article, isDark, onProtectedAction }) {
         {/* Image */}
         {article.image && (
           <img
+            onClick={handleArticleClick}
             src={article.image}
             alt={article.title}
             className="w-32 h-32 object-cover rounded-lg flex-shrink-0"
@@ -1559,20 +1886,31 @@ function StatRow({ icon: Icon, label, value, isDark }) {
   );
 }
 
-function StaffPickCard({ pick, isDark, onProtectedAction }) {
+function StaffPickCard({ pick, isDark, onArticleClick }) {
   const handleClick = () => {
-    onProtectedAction(() => {
-      alert(`Opening staff pick: ${pick.title}\n\nBy ${pick.author}\nFull article coming soon!`);
-    });
+    if (onArticleClick && pick.blog) {
+      onArticleClick(pick.blog);
+    }
+  };
+
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.charAt(0).toUpperCase();
   };
 
   return (
     <div onClick={handleClick} className="flex gap-3 cursor-pointer group hover:opacity-80 transition">
-      <img
-        src={pick.image}
-        alt={pick.author}
-        className="w-8 h-8 rounded-full flex-shrink-0"
-      />
+      {pick.image ? (
+        <img
+          src={pick.image}
+          alt={pick.author}
+          className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
+        />
+      ) : (
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+          {getInitials(pick.author)}
+        </div>
+      )}
       <div className="flex-1 min-w-0">
         <h4 className={`text-sm font-medium mb-1 line-clamp-2 group-hover:text-scribe-green transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {pick.title}

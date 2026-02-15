@@ -1,14 +1,14 @@
 import express from 'express';
 const router = express.Router();
 import {
-    createBlog,
+    createBlogPost,
     getAllBlogs,
     getMyBlogs,
     getBlog,
-    updateBlog,
-    deleteBlog,
+    updateBlogPost,
+    deleteBlogPost,
     likeBlog,
-    getUserStats
+    getStatsForUser
 } from '../controllers/blog.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 
@@ -18,11 +18,11 @@ router.get('/:id', getBlog);
 
 // Protected routes
 router.use(protect);
-router.post('/', createBlog);
+router.post('/', createBlogPost);
 router.get('/user/my-blogs', getMyBlogs);
-router.get('/user/stats', getUserStats);
-router.put('/:id', updateBlog);
-router.delete('/:id', deleteBlog);
+router.get('/user/stats', getStatsForUser);
+router.put('/:id', updateBlogPost);
+router.delete('/:id', deleteBlogPost);
 router.post('/:id/like', likeBlog);
 
 export default router;
