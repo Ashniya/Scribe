@@ -9,7 +9,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
 import About from './pages/About';
 import LoginPromptModal from './components/LoginPromptModal'
-
+// import admin from 'firebase-admin';
 function App() {
   return (
     <ThemeProvider>

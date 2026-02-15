@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Firebase Auth Test</h1>
+    <div id="status"></div>
+    <button id="testBtn">Test Authentication</button>
+    <pre id="output"></pre>
+
+    <script type="module">
+        import { auth } from './src/config/firebase.js';
+        import { onAuthStateChanged } from 'firebase/auth';
+
+        const statusDiv = document.getElementById('status');
+        const outputPre = document.getElementById('output');
+        const testBtn = document.getElementById('testBtn');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                statusDiv.innerHTML = `<p style="color: green;">✅ User is logged in: ${user.email}</p>`;
+                
+                // Get token
+                try {
+                    const token = await user.getIdToken();
+                    outputPre.textContent = `Token (first 50 chars): ${token.substring(0, 50)}...\nToken length: ${token.length}`;
+                } catch (error) {
+                    outputPre.textContent = `Error getting token: ${error.message}`;
+                }
+            } else {
+                statusDiv.innerHTML = `<p style="color: red;">❌ No user logged in</p>`;
+                outputPre.textContent = 'Please log in first';
+            }
+        });
+
+        testBtn.addEventListener('click', async () => {
+            const user = auth.currentUser;
+            if (!user) {
+                alert('Please log in first!');
+                return;
+            }
+
+            try {
+                const token = await user.getIdToken();
+                
+                const response = await fetch('http://localhost:5000/api/blogs', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: 'Test Article',
+                        content: 'This is a test article',
+                        category: 'General',
+                        tags: [],
+                        published: true
+                    })
+                });
+
+                const data = await response.json();
+                outputPre.textContent = `Response Status: ${response.status}\n` + 
+                                       `Response Data: ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                outputPre.textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

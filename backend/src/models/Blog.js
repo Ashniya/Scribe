@@ -3,21 +3,30 @@ import mongoose from 'mongoose';
 const blogSchema = new mongoose.Schema({
     title: {
         type: String,
-        required: [true, 'Please add a title'],
-        trim: true,
-        maxlength: [200, 'Title cannot be more than 200 characters']
+        required: [true, 'Title is required'],
+        trim: true
     },
     content: {
         type: String,
-        required: [true, 'Please add content']
+        required: [true, 'Content is required']
     },
     excerpt: {
-        type: String,
-        maxlength: [500, 'Excerpt cannot be more than 500 characters']
+        type: String
     },
-    author: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+    category: {
+        type: String,
+        default: 'General'
+    },
+    tags: {
+        type: [String],
+        default: []
+    },
+    coverImage: {
+        type: String,
+        default: null
+    },
+    authorId: {
+        type: String,
         required: true
     },
     authorName: {
@@ -28,29 +37,30 @@ const blogSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    category: {
+    authorPhotoURL: {
         type: String,
-        default: 'General'
-    },
-    tags: [{
-        type: String
-    }],
-    coverImage: {
-        type: String,
-        default: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&h=400&fit=crop'
+        default: null
     },
     readTime: {
-        type: Number, // in minutes
-        default: 5
+        type: Number,
+        default: 1
     },
     views: {
         type: Number,
         default: 0
     },
-    likes: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    }],
+    likes: {
+        type: [String],
+        default: []
+    },
+    likescount: {
+        type: Number,
+        default: 0
+    },
+    commentscount: {
+        type: Number,
+        default: 0
+    },
     published: {
         type: Boolean,
         default: true
@@ -63,19 +73,6 @@ const blogSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Calculate read time before saving
-blogSchema.pre('save', function (next) {
-    if (this.content) {
-        const wordsPerMinute = 200;
-        const wordCount = this.content.split(/\s+/).length;
-        this.readTime = Math.ceil(wordCount / wordsPerMinute);
+const Blog = mongoose.model('Blog', blogSchema);
 
-        // Generate excerpt if not provided
-        if (!this.excerpt) {
-            this.excerpt = this.content.substring(0, 200) + '...';
-        }
-    }
-    next();
-});
-
-export default mongoose.model('Blog', blogSchema);
+export default Blog;
