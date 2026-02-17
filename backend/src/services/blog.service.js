@@ -1,15 +1,22 @@
 import Blog from '../models/Blog.js';
 
+// Helper function to strip HTML tags
+const stripHtml = (html) => {
+    return html.replace(/<[^>]*>?/gm, '');
+};
+
 // Helper function to calculate read time
 const calculateReadTime = (content) => {
+    const plainText = stripHtml(content);
     const wordsPerMinute = 200;
-    const wordCount = content.split(/\s+/).length;
-    return Math.ceil(wordCount / wordsPerMinute);
+    const wordCount = plainText.split(/\s+/).filter(word => word.length > 0).length;
+    return Math.ceil(wordCount / wordsPerMinute) || 1;
 };
 
 // Helper function to generate excerpt
 const generateExcerpt = (content, maxLength = 200) => {
-    return content.substring(0, maxLength) + '...';
+    const plainText = stripHtml(content);
+    return plainText.substring(0, maxLength).trim() + '...';
 };
 
 export const createBlog = async (blogData) => {

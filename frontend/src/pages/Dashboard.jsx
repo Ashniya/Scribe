@@ -754,6 +754,7 @@ import ArticleView from '../components/ArticleView';
 import ProfileSettings from '../components/ProfileSettings';
 import LoginPromptModal from '../components/LoginPromptModal';
 import FollowingPreferencesModal from '../components/FollowingPreferencesModal';
+import Onboarding from '../components/Onboarding';
 import {
   Home,
   PenTool,
@@ -778,7 +779,12 @@ import {
   MoreVertical,
   UserPlus,
   VolumeX,
-  Flag
+  Flag,
+  Trash2,
+  FileText,
+  Sun,
+  Moon,
+  LogIn
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -806,6 +812,17 @@ export default function Dashboard() {
   const [staffPicks, setStaffPicks] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [followingAuthor, setFollowingAuthor] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Check onboarding status when user loads
+  useEffect(() => {
+    if (currentUser) {
+      const completed = localStorage.getItem('onboardingComplete');
+      if (!completed) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [currentUser]);
 
   const handleLogout = async () => {
     try {
@@ -874,6 +891,31 @@ export default function Dashboard() {
       localStorage.setItem('savedBlogs', JSON.stringify(updated));
       return updated;
     });
+  };
+
+  const handleDelete = async (blogId) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      const res = await fetch(`http://localhost:5000/api/blogs/${blogId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        // Remove from blogs state
+        setBlogs(prev => prev.filter(b => b._id !== blogId));
+        setMyBlogs(prev => prev.filter(b => b._id !== blogId));
+        alert('Story deleted successfully!');
+      } else {
+        alert('Failed to delete story: ' + (data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete story. Please try again.');
+    }
   };
 
   // Fetch data from backend
@@ -1066,7 +1108,7 @@ export default function Dashboard() {
                     views: blog.views,
                     isLiked: true,
                     isSaved: savedBlogs.includes(blog._id)
-                  }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => setSelectedArticle(blog)} onFollowAuthor={setFollowingAuthor} />
+                  }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => setSelectedArticle(blog)} onFollowAuthor={setFollowingAuthor} currentUser={currentUser} onDelete={handleDelete} />
                 ))}
               </div>
             )}
@@ -1107,7 +1149,7 @@ export default function Dashboard() {
                     views: blog.views,
                     isLiked: blog.likes?.includes(currentUser?.uid),
                     isSaved: true
-                  }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => setSelectedArticle(blog)} onFollowAuthor={setFollowingAuthor} />
+                  }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => setSelectedArticle(blog)} onFollowAuthor={setFollowingAuthor} currentUser={currentUser} onDelete={handleDelete} />
                 ))}
               </div>
             )}
@@ -1168,6 +1210,19 @@ export default function Dashboard() {
     return <Editor onClose={() => setShowEditor(false)} isDark={isDark} />;
   }
 
+  // Show onboarding for first-time users
+  if (showOnboarding) {
+    return (
+      <Onboarding
+        isDark={isDark}
+        onComplete={(selectedTopics) => {
+          console.log('User selected topics:', selectedTopics);
+          setShowOnboarding(false);
+        }}
+      />
+    );
+  }
+
   return (
     <>
       <LoginPromptModal
@@ -1196,6 +1251,8 @@ export default function Dashboard() {
         }`}>
         <div className="flex">
           {/* Sidebar - Responsive to Theme */}
+          {/* Sidebar - Medium Style Rail */}
+          {/* Sidebar - Original */}
           <aside className={`w-64 min-h-screen flex flex-col fixed top-0 left-0 border-r transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             } z-40 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'
             }`}>
@@ -1209,52 +1266,40 @@ export default function Dashboard() {
 
             {/* Navigation */}
             <nav className="flex-1 px-0 py-6">
-              <NavItem icon={Home} label="Home" active={activeSection === 'home'} onClick={() => handleProtectedAction(() => setActiveSection('home'))} isDark={isDark} />
-              <NavItem icon={BookOpen} label="Library" active={activeSection === 'library'} onClick={() => handleProtectedAction(() => setActiveSection('library'))} isDark={isDark} />
-              <NavItem icon={Users} label="Profile" active={activeSection === 'profile'} onClick={() => handleProtectedAction(() => setActiveSection('profile'))} isDark={isDark} />
-              <NavItem icon={PenTool} label="Stories" active={activeSection === 'stories'} onClick={() => handleProtectedAction(() => setActiveSection('stories'))} isDark={isDark} />
-              <NavItem icon={BarChart3} label="Stats" active={activeSection === 'stats'} onClick={() => handleProtectedAction(() => setActiveSection('stats'))} isDark={isDark} />
+              <NavItem icon={Home} label="Home" active={activeSection === 'home'} onClick={() => setActiveSection('home')} isDark={isDark} />
+              <NavItem icon={BookOpen} label="Library" active={activeSection === 'library'} onClick={() => setActiveSection('library')} isDark={isDark} />
+              <NavItem icon={Users} label="Profile" active={activeSection === 'profile'} onClick={() => setActiveSection('profile')} isDark={isDark} />
+              <NavItem icon={PenTool} label="Stories" active={activeSection === 'stories'} onClick={() => setActiveSection('stories')} isDark={isDark} />
+              <NavItem icon={BarChart3} label="Stats" active={activeSection === 'stats'} onClick={() => setActiveSection('stats')} isDark={isDark} />
 
               <div className={`h-px my-6 ${isDark ? 'bg-slate-700' : 'bg-gray-200'}`}></div>
 
-              <NavItem icon={TrendingUp} label="Following" active={activeSection === 'following'} onClick={() => handleProtectedAction(() => setActiveSection('following'))} isDark={isDark} />
-              <NavItem icon={Heart} label="Favorites" active={activeSection === 'favorites'} onClick={() => handleProtectedAction(() => setActiveSection('favorites'))} isDark={isDark} />
-              <NavItem icon={Bookmark} label="Collections" active={activeSection === 'collections'} onClick={() => handleProtectedAction(() => setActiveSection('collections'))} isDark={isDark} />
-              <NavItem icon={Bell} label="Notifications" active={activeSection === 'notifications'} onClick={() => handleProtectedAction(() => setActiveSection('notifications'))} isDark={isDark} />
-              <NavItem icon={Settings} label="Settings" active={activeSection === 'settings'} onClick={() => handleProtectedAction(() => setActiveSection('settings'))} isDark={isDark} />
+              <NavItem icon={TrendingUp} label="Following" active={activeSection === 'following'} onClick={() => setActiveSection('following')} isDark={isDark} />
+              <NavItem icon={Heart} label="Favorites" active={activeSection === 'favorites'} onClick={() => setActiveSection('favorites')} isDark={isDark} />
+              <NavItem icon={Bookmark} label="Collections" active={activeSection === 'collections'} onClick={() => setActiveSection('collections')} isDark={isDark} />
+              <NavItem icon={Bell} label="Notifications" active={activeSection === 'notifications'} onClick={() => setActiveSection('notifications')} isDark={isDark} />
+              <NavItem icon={Settings} label="Settings" active={activeSection === 'settings'} onClick={() => setActiveSection('settings')} isDark={isDark} />
             </nav>
 
             {/* User Info & Logout */}
             <div className={`p-4 border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
-              {currentUser ? (
-                <>
-                  <div className="flex items-center gap-3 mb-3 px-2">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm">
-                      {currentUser?.displayName?.[0] || currentUser?.email?.[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className={`font-medium text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        {currentUser?.displayName || 'Writer'}
-                      </h3>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-full transition text-sm font-medium border ${isDark ? 'border-slate-600 text-gray-300 hover:bg-slate-800' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Log Out</span>
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => navigate('/login')}
-                  className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-full transition text-sm font-medium bg-gradient-to-r from-scribe-green to-scribe-sage text-white hover:shadow-md`}
-                >
-                  <LogOut className="w-4 h-4 rotate-180" />
-                  <span>Log In</span>
-                </button>
-              )}
+              <div className="flex items-center gap-3 mb-3 px-2">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm">
+                  {currentUser?.displayName?.[0] || currentUser?.email?.[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className={`font-medium text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    {currentUser?.displayName || 'Writer'}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-full transition text-sm font-medium border ${isDark ? 'border-slate-600 text-gray-300 hover:bg-slate-800' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Log Out</span>
+              </button>
             </div>
           </aside>
 
@@ -1487,9 +1532,10 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
 
+              </div>
+
+            </div>
             {/* Content Area */}
             <div className="max-w-7xl mx-auto px-8 py-8">
               {/* Show section-specific content or default Home feed */}
@@ -1542,6 +1588,14 @@ export default function Dashboard() {
                         let filteredBlogs = categoryFilter
                           ? blogs.filter(b => b.category === categoryFilter)
                           : blogs;
+
+                        // Filter by Search Query
+                        if (searchQuery) {
+                          filteredBlogs = filteredBlogs.filter(b =>
+                            (b.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+                            (b.excerpt?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+                          );
+                        }
 
                         // Then filter by active tab
                         if (activeTab === 'featured') {
@@ -1597,7 +1651,7 @@ export default function Dashboard() {
                                 views: blog.views,
                                 isLiked: blog.likes?.includes(currentUser?.uid),
                                 isSaved: savedBlogs.includes(blog._id)
-                              }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => setSelectedArticle(blog)} onFollowAuthor={setFollowingAuthor} />
+                              }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => setSelectedArticle(blog)} onFollowAuthor={setFollowingAuthor} currentUser={currentUser} onDelete={handleDelete} />
                             ))}
                           </>
                         );
@@ -1666,15 +1720,33 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-          </main>
-        </div>
-      </div>
+          </main >
+        </div >
+      </div >
     </>
   );
 }
 
 // Components
-function NavItem({ icon: Icon, label, active, badge, onClick, isDark }) {
+function NavItem({ icon: Icon, label, active, badge, onClick, isDark, iconOnly }) {
+  if (iconOnly) {
+    return (
+      <button
+        onClick={onClick}
+        className={`w-12 h-12 flex items-center justify-center rounded-full transition group relative ${active
+          ? isDark ? 'text-white bg-slate-800' : 'text-gray-900 bg-gray-100'
+          : isDark ? 'text-gray-400 hover:text-gray-200 hover:bg-slate-800' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+          }`}
+        title={label}
+      >
+        <Icon className="w-6 h-6" strokeWidth={1.5} />
+        {badge && (
+          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+        )}
+      </button>
+    );
+  }
+
   return (
     <button
       onClick={onClick}
@@ -1694,7 +1766,7 @@ function NavItem({ icon: Icon, label, active, badge, onClick, isDark }) {
   );
 }
 
-function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArticleClick, onFollowAuthor }) {
+function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArticleClick, onFollowAuthor, currentUser, onDelete }) {
   const [showMenu, setShowMenu] = useState(false);
 
   const handleArticleClick = () => {
@@ -1733,6 +1805,13 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
         case 'report':
           alert('Report submitted. Thank you for helping keep our community safe.');
           break;
+        case 'delete':
+          if (confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
+            if (onDelete) {
+              onDelete(article.id);
+            }
+          }
+          break;
       }
     });
   };
@@ -1741,122 +1820,93 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
     <div
       className={`group cursor-pointer border-b pb-8 ${isDark ? 'border-slate-700' : 'border-gray-200'} hover:opacity-80 transition`}
     >
-      <div className="flex gap-6">
-        <div className="flex-1">
+      <div className="flex justify-between items-center gap-8">
+        <div className="flex-1 min-w-0">
           {/* Author + Menu */}
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2" onClick={handleArticleClick}>
               {article.authorImage ? (
                 <img
                   src={article.authorImage}
                   alt={article.author}
-                  className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-slate-600"
+                  className="w-5 h-5 rounded-full object-cover border border-gray-200 dark:border-slate-600"
                   onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                 />
               ) : null}
               <div
-                className={`w-7 h-7 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-xs flex-shrink-0`}
+                className={`w-5 h-5 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-[10px] flex-shrink-0`}
                 style={{ display: article.authorImage ? 'none' : 'flex' }}
               >
                 {getInitials(article.author)}
               </div>
-              <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                {article.author}
-              </span>
-              <span className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>in</span>
-              <span className="text-sm font-medium text-scribe-green">{article.category}</span>
-            </div>
-
-            {/* Three-dot menu */}
-            <div className="relative">
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                className={`p-1 rounded-full transition ${isDark ? 'hover:bg-slate-800 text-gray-500' : 'hover:bg-gray-100 text-gray-400'}`}
-              >
-                <MoreVertical className="w-5 h-5" />
-              </button>
-
-              {/* Dropdown menu */}
-              {showMenu && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                  <div className={`absolute right-0 top-8 z-20 w-56 rounded-lg shadow-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
-                    <button
-                      onClick={() => handleMenuAction('follow-author')}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      <span className="text-sm">Follow author</span>
-                    </button>
-                    <button
-                      onClick={() => handleMenuAction('follow-publication')}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      <span className="text-sm">Follow publication</span>
-                    </button>
-                    <div className={`border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`} />
-                    <button
-                      onClick={() => handleMenuAction('mute-author')}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
-                    >
-                      <VolumeX className="w-4 h-4" />
-                      <span className="text-sm">Mute author</span>
-                    </button>
-                    <button
-                      onClick={() => handleMenuAction('mute-publication')}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
-                    >
-                      <VolumeX className="w-4 h-4" />
-                      <span className="text-sm">Mute publication</span>
-                    </button>
-                    <div className={`border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`} />
-                    <button
-                      onClick={() => handleMenuAction('report')}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition rounded-b-lg"
-                    >
-                      <Flag className="w-4 h-4" />
-                      <span className="text-sm">Report story...</span>
-                    </button>
-                  </div>
-                </>
-              )}
+              <div className="flex items-center gap-1 text-sm">
+                <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                  {article.author}
+                </span>
+                <span className={`${isDark ? 'text-gray-500' : 'text-gray-500'}`}>in</span>
+                <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{article.category}</span>
+              </div>
             </div>
           </div>
 
           {/* Title */}
-          <h2 onClick={handleArticleClick} className={`text-xl font-bold mb-2 line-clamp-2 group-hover:text-scribe-green transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {article.title}
+          <h2 onClick={handleArticleClick} className={`text-xl md:text-2xl font-bold font-serif mb-1 line-clamp-2 group-hover:underline decoration-glide transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {article.title.replace(/^#+\s*|^\*+|\*+$/g, '')}
           </h2>
 
           {/* Excerpt */}
-          <p onClick={handleArticleClick} className={`text-base mb-4 line-clamp-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            {article.excerpt}
+          <p onClick={handleArticleClick} className={`text-base font-sans mb-3 line-clamp-2 hidden sm:block ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            {article.excerpt.replace(/^#+\s*|^\*+|\*+$/g, '')}
           </p>
 
           {/* Meta */}
-          <div className={`flex items-center gap-4 text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-            <span>{article.date}</span>
-            <span>·</span>
-            <span>{article.readTime}</span>
-            <span>·</span>
-            <button
-              onClick={(e) => { e.stopPropagation(); onProtectedAction(() => onLike && onLike()); }}
-              className={`flex items-center gap-1 transition-colors hover:text-red-500 ${article.isLiked ? 'text-red-500' : ''}`}
-            >
-              <Heart className={`w-4 h-4 ${article.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-              {(article.claps || 0).toLocaleString()}
-            </button>
-            <span className="flex items-center gap-1">
-              <MessageSquare className="w-4 h-4" />
-              {article.comments}
-            </span>
-            <button
-              onClick={(e) => { e.stopPropagation(); onProtectedAction(() => onSave && onSave()); }}
-              className={`ml-auto transition-colors ${article.isSaved ? 'text-scribe-green' : ''}`}
-            >
-              <Bookmark className={`w-5 h-5 ${article.isSaved ? 'fill-scribe-green text-scribe-green' : isDark ? 'text-gray-600 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`} />
-            </button>
+          <div className="flex items-center justify-between pt-2">
+            <div className={`flex items-center gap-4 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <span>{article.date}</span>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); onProtectedAction(() => onLike && onLike()); }}
+                className={`flex items-center gap-1 hover:text-gray-900 dark:hover:text-gray-200 transition ${article.isLiked ? 'text-red-500' : ''}`}
+              >
+                <Heart className={`w-4 h-4 ${article.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                <span>{(article.claps || 0).toLocaleString()}</span>
+              </button>
+
+              <div className="flex items-center gap-1">
+                <MessageSquare className="w-4 h-4" />
+                <span>{article.comments || 0}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => { e.stopPropagation(); onProtectedAction(() => onSave && onSave()); }}
+                className={`transition-colors p-1 ${article.isSaved ? 'text-scribe-green' : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'}`}
+              >
+                <Bookmark className={`w-5 h-5 ${article.isSaved ? 'fill-scribe-green text-scribe-green' : ''}`} />
+              </button>
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                  className={`transition ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+                {/* Dropdown Menu */}
+                {showMenu && (
+                  <div className="absolute right-0 top-8 z-20 w-48 bg-white dark:bg-slate-800 rounded shadow-xl border border-gray-200 dark:border-slate-700 py-1" onClick={(e) => e.stopPropagation()}>
+                    {currentUser && article.authorEmail === currentUser.email ? (
+                      <button onClick={(e) => { e.stopPropagation(); handleMenuAction('delete'); }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50 dark:hover:bg-slate-700">Delete story</button>
+                    ) : (
+                      <>
+                        <button onClick={(e) => { e.stopPropagation(); handleMenuAction('mute-author'); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700">Mute author</button>
+                        <button onClick={(e) => { e.stopPropagation(); handleMenuAction('report'); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700">Report</button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1866,7 +1916,7 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
             onClick={handleArticleClick}
             src={article.image}
             alt={article.title}
-            className="w-32 h-32 object-cover rounded-lg flex-shrink-0"
+            className="w-[112px] h-[112px] sm:w-[160px] sm:h-[107px] object-cover flex-shrink-0 ml-4 sm:ml-8"
           />
         )}
       </div>
