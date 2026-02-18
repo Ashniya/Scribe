@@ -1,28 +1,30 @@
+// frontend/src/App.jsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import React from 'react';
 import Landing from './pages/Landing';
 import LoginPage from './pages/Login';
-import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import Stats from './pages/Stats';
+import Search from './pages/Search';
+import ProfileTest from './pages/ProfileTest';
+import Contact from './pages/Contact';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
-import About from './pages/About';
-import LoginPromptModal from './components/LoginPromptModal'
-// import admin from 'firebase-admin';
+
 function App() {
   return (
     <ThemeProvider>
       <Router>
         <AuthProvider>
           <Routes>
-            {/* Public route - accessible to everyone */}
+
+            {/* Public routes */}
             <Route path="/" element={<Landing />} />
+            <Route path="/contact" element={<Contact />} />
 
-            {/* About page */}
-            <Route path="/about" element={<About />} />
-
-            {/* Login route - only accessible when NOT logged in */}
+            {/* Login - only when NOT logged in */}
             <Route
               path="/login"
               element={
@@ -32,19 +34,69 @@ function App() {
               }
             />
 
-            {/* Forgot Password route */}
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-
-            {/* Protected route - only accessible when logged in */}
+            {/* Dashboard - home feed only */}
             <Route
               path="/dashboard"
               element={
-                <Dashboard />
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
               }
             />
 
-            {/* 404 - Not found */}
+            {/* Your own profile */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Another user's profile */}
+            <Route
+              path="/profile/:username"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Stats */}
+            <Route
+              path="/stats"
+              element={
+                <ProtectedRoute>
+                  <Stats />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Search / Explore */}
+            <Route
+              path="/search"
+              element={
+                <ProtectedRoute>
+                  <Search />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Profile Test */}
+            <Route
+              path="/profile-test"
+              element={
+                <ProtectedRoute>
+                  <ProfileTest />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
+
           </Routes>
         </AuthProvider>
       </Router>

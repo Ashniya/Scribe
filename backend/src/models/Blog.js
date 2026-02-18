@@ -68,6 +68,43 @@ const blogSchema = new mongoose.Schema({
     publishedAt: {
         type: Date,
         default: Date.now
+    },
+    totalReadTime: {
+        type: Number,
+        default: 0
+    },
+    totalReads: {
+        type: Number,
+        default: 0
+    },
+
+    // New Features
+    isRepost: {
+        type: Boolean,
+        default: false
+    },
+    originalAuthor: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    originalPostId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Blog'
+    },
+    repostedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    repostedAt: {
+        type: Date
+    },
+    saves: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    saveCount: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true

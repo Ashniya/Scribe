@@ -8,7 +8,10 @@ import {
     updateBlogPost,
     deleteBlogPost,
     likeBlog,
-    getStatsForUser
+    saveBlogPost,
+    getStatsForUser,
+    repostBlogPost,
+    trackReadTimeController
 } from '../controllers/blog.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 
@@ -24,5 +27,9 @@ router.get('/user/stats', getStatsForUser);
 router.put('/:id', updateBlogPost);
 router.delete('/:id', deleteBlogPost);
 router.post('/:id/like', likeBlog);
+router.post('/:id/save', saveBlogPost);
+
+router.post('/:id/repost', repostBlogPost);
+router.post('/:id/track-time', trackReadTimeController);
 
 export default router;

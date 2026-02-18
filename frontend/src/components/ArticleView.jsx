@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { ArrowLeft, Heart, MessageSquare, Bookmark, Eye, Clock, Send, Trash2, MoreVertical, Edit3, Pin, Settings, BarChart3, EyeOff, MessageCircleOff, Share2, Linkedin, Instagram, Twitter, Facebook } from 'lucide-react';
+import { ArrowLeft, Heart, MessageSquare, Bookmark, Eye, Clock, Send, Trash2, MoreVertical, Edit3, Pin, Settings, BarChart3, EyeOff, MessageCircleOff, Share2, Linkedin, Instagram, Twitter, Facebook, Repeat, Timer } from 'lucide-react';
+import { repostBlog, trackReadTime } from '../utils/api.js';
 import { auth } from '../config/firebase.js';
 
 export default function ArticleView({ article, isDark, onClose, onLike, onSave, isLiked, isSaved, currentUser }) {
@@ -8,6 +9,17 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
     const [loadingComments, setLoadingComments] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showArticleMenu, setShowArticleMenu] = useState(false);
+
+    // Time Tracking
+    useEffect(() => {
+        const startTime = Date.now();
+        return () => {
+            const duration = Math.floor((Date.now() - startTime) / 1000);
+            if (duration > 5 && currentUser) {
+                trackReadTime(article._id, duration).catch(err => console.error('Time tracking error:', err));
+            }
+        };
+    }, [article._id, currentUser]);
 
     // Fetch comments
     useEffect(() => {
@@ -26,6 +38,19 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
         };
         fetchComments();
     }, [article._id]);
+
+    const handleRepost = async () => {
+        if (!currentUser) return alert('Please log in to repost.');
+        if (confirm('Repost this story to your profile?')) {
+            try {
+                await repostBlog(article._id);
+                alert('Reposted successfully!');
+            } catch (error) {
+                console.error('Repost error:', error);
+                alert('Failed to repost: ' + error.message);
+            }
+        }
+    };
 
     // Post comment
     const handlePostComment = async () => {
@@ -322,6 +347,14 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                             <MessageSquare className="w-5 h-5" />
                             {comments.length} comments
                         </span>
+                        <button
+                            onClick={handleRepost}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full transition border ${isDark ? 'text-gray-400 border-slate-700 hover:bg-slate-800' : 'text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+                            title="Repost this story"
+                        >
+                            <Repeat className="w-5 h-5" />
+                            <span>Repost</span>
+                        </button>
                     </div>
                     <button
                         onClick={onSave}
@@ -422,51 +455,59 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                     </h3>
 
                     {/* Comment Input */}
-                    <div className={`mb-8 p-4 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
-                        <div className="flex items-start gap-3">
-                            {currentUser?.photoURL ? (
-                                <img src={currentUser.photoURL} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
-                            ) : (
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                                    {currentUser?.displayName?.[0]?.toUpperCase() || currentUser?.email?.[0]?.toUpperCase() || '?'}
-                                </div>
-                            )}
-                            <div className="flex-1">
-                                <textarea
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    placeholder={currentUser ? "Write a comment..." : "Log in to comment"}
-                                    disabled={!currentUser}
-                                    rows={3}
-                                    className={`w-full resize-none rounded-lg px-4 py-3 text-sm outline-none transition ${isDark
-                                        ? 'bg-slate-700 text-white placeholder-gray-500 border-slate-600 focus:border-slate-500'
-                                        : 'bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:border-gray-300'
-                                        } border`}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                                            handlePostComment();
-                                        }
-                                    }}
-                                />
-                                <div className="flex items-center justify-between mt-2">
-                                    <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                        Ctrl+Enter to submit
-                                    </span>
-                                    <button
-                                        onClick={handlePostComment}
-                                        disabled={!newComment.trim() || submitting || !currentUser}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${newComment.trim() && !submitting && currentUser
-                                            ? 'bg-gradient-to-r from-scribe-green to-scribe-sage text-white hover:shadow-md'
-                                            : isDark ? 'bg-slate-700 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                            }`}
-                                    >
-                                        <Send className="w-4 h-4" />
-                                        {submitting ? 'Posting...' : 'Comment'}
-                                    </button>
+                    {(currentUser?.uid === article.authorId || currentUser?._id === article.authorId) ? (
+                        <div className={`mb-8 p-6 rounded-xl border text-center ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
+                            <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                You can't comment on your own post.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className={`mb-8 p-4 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="flex items-start gap-3">
+                                {currentUser?.photoURL ? (
+                                    <img src={currentUser.photoURL} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                                ) : (
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                                        {currentUser?.displayName?.[0]?.toUpperCase() || currentUser?.email?.[0]?.toUpperCase() || '?'}
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <textarea
+                                        value={newComment}
+                                        onChange={(e) => setNewComment(e.target.value)}
+                                        placeholder={currentUser ? "Write a comment..." : "Log in to comment"}
+                                        disabled={!currentUser}
+                                        rows={3}
+                                        className={`w-full resize-none rounded-lg px-4 py-3 text-sm outline-none transition ${isDark
+                                            ? 'bg-slate-700 text-white placeholder-gray-500 border-slate-600 focus:border-slate-500'
+                                            : 'bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:border-gray-300'
+                                            } border`}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                                                handlePostComment();
+                                            }
+                                        }}
+                                    />
+                                    <div className="flex items-center justify-between mt-2">
+                                        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                            Ctrl+Enter to submit
+                                        </span>
+                                        <button
+                                            onClick={handlePostComment}
+                                            disabled={!newComment.trim() || submitting || !currentUser}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${newComment.trim() && !submitting && currentUser
+                                                ? 'bg-gradient-to-r from-scribe-green to-scribe-sage text-white hover:shadow-md'
+                                                : isDark ? 'bg-slate-700 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                }`}
+                                        >
+                                            <Send className="w-4 h-4" />
+                                            {submitting ? 'Posting...' : 'Comment'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Comments List */}
                     {loadingComments ? (

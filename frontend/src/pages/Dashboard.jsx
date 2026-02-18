@@ -745,7 +745,7 @@
 
 
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { auth } from '../config/firebase.js';
@@ -755,6 +755,10 @@ import ProfileSettings from '../components/ProfileSettings';
 import LoginPromptModal from '../components/LoginPromptModal';
 import FollowingPreferencesModal from '../components/FollowingPreferencesModal';
 import Onboarding from '../components/Onboarding';
+import ProfileContent from '../components/ProfileContent';
+import StatsContent from '../components/StatsContent';
+import SearchContent from '../components/SearchContent';
+import { saveBlog, getBlogById } from '../utils/api';
 import {
   Home,
   PenTool,
@@ -787,14 +791,23 @@ import {
   LogIn
 } from 'lucide-react';
 
-export default function Dashboard() {
+export default function Dashboard({ initialSection = 'home' }) {
   const { currentUser, signOut } = useAuth();
   const { isDark, setIsDark } = useContext(ThemeContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('for-you');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeSection, setActiveSection] = useState('home');
+  const [activeSection, setActiveSection] = useState(location.state?.section || initialSection);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (location.state?.section) {
+      setActiveSection(location.state.section);
+    } else if (initialSection) {
+      setActiveSection(initialSection);
+    }
+  }, [location.state, initialSection]);
   const [showEditor, setShowEditor] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -883,14 +896,29 @@ export default function Dashboard() {
     try { return JSON.parse(localStorage.getItem('savedBlogs') || '[]'); } catch { return []; }
   });
 
-  const handleSave = (blogId) => {
-    setSavedBlogs(prev => {
-      const updated = prev.includes(blogId)
-        ? prev.filter(id => id !== blogId)
-        : [...prev, blogId];
-      localStorage.setItem('savedBlogs', JSON.stringify(updated));
-      return updated;
-    });
+  const handleSave = async (blogId) => {
+    try {
+      const res = await saveBlog(blogId);
+      if (res.success) {
+        setSavedBlogs(prev => {
+          const updated = res.data.isSaved
+            ? [...prev, blogId]
+            : prev.filter(id => id !== blogId);
+          localStorage.setItem('savedBlogs', JSON.stringify(updated));
+          return updated;
+        });
+
+        // Update selected article if it's the one being saved/unsaved
+        if (selectedArticle && selectedArticle._id === blogId) {
+          setSelectedArticle(prev => ({
+            ...prev,
+            isSaved: res.data.isSaved
+          }));
+        }
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+    }
   };
 
   const handleDelete = async (blogId) => {
@@ -988,14 +1016,7 @@ export default function Dashboard() {
           </div>
         );
       case 'profile':
-        return (
-          <div className="text-center py-20">
-            <Users className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
-            <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Profile</h2>
-            <p className={`text-gray-500 mb-4`}>{currentUser?.displayName || 'Writer'}</p>
-            <p className={`text-gray-500`}>Profile customization coming soon</p>
-          </div>
-        );
+        return <ProfileContent />;
       case 'stories':
         return (
           <div className="max-w-4xl mx-auto py-12">
@@ -1047,25 +1068,26 @@ export default function Dashboard() {
           </div>
         );
       case 'stats':
-        return (
-          <div className="max-w-4xl mx-auto py-12">
-            <h2 className={`text-3xl font-bold mb-8 ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Stats</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {[
-                { icon: BookOpen, label: 'Stories', value: stats.totalPosts },
-                { icon: Eye, label: 'Views', value: stats.totalViews },
-                { icon: Heart, label: 'Likes', value: stats.totalLikes },
-                { icon: Users, label: 'Followers', value: stats.followers }
-              ].map((stat) => (
-                <div key={stat.label} className={`p-6 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
-                  <stat.icon className={`w-8 h-8 mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-                  <div className={`text-3xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{stat.value}</div>
-                  <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
+        return <StatsContent />;
+      case 'search':
+        return <SearchContent
+          initialQuery={searchQuery}
+          onArticleClick={async (blogId) => {
+            const found = blogs.find(b => b._id === blogId);
+            if (found) {
+              setSelectedArticle(found);
+            } else {
+              try {
+                const res = await getBlogById(blogId);
+                if (res.success) {
+                  setSelectedArticle(res.data);
+                }
+              } catch (err) {
+                console.error('Failed to load article:', err);
+              }
+            }
+          }}
+        />;
       case 'following':
         return (
           <div className="text-center py-20">
@@ -1284,9 +1306,17 @@ export default function Dashboard() {
             {/* User Info & Logout */}
             <div className={`p-4 border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
               <div className="flex items-center gap-3 mb-3 px-2">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm">
-                  {currentUser?.displayName?.[0] || currentUser?.email?.[0].toUpperCase()}
-                </div>
+                {currentUser?.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt={currentUser.displayName}
+                    className="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-slate-700"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm">
+                    {currentUser?.displayName?.[0]?.toUpperCase() || currentUser?.email?.[0]?.toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <h3 className={`font-medium text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     {currentUser?.displayName || 'Writer'}
@@ -1329,7 +1359,11 @@ export default function Dashboard() {
                           placeholder="Search"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && console.log('Searching for:', searchQuery)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              setActiveSection('search');
+                            }
+                          }}
                           className={`w-full pl-10 pr-4 py-2 rounded-full border transition ${isDark
                             ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-slate-600'
                             : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 focus:border-gray-300'

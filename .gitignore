@@ -5,3 +5,11 @@ dist/
 build/
 **/firebase-key.json
 *.log
+Desktop/
+.idea/
+.vscode/
+coverage/
+tmp/
+.DS_Store
+*.swp
+backend/ScribeServiceAccountKey.json
