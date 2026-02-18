@@ -173,6 +173,10 @@ export default function ProfileContent() {
             };
             const data = await updateProfile(updateData);
             setProfile(data.user);
+            // Update global context to reflect changes immediately
+            if (currentUser) {
+                setCurrentUser({ ...currentUser, ...data.user });
+            }
             setIsEditing(false);
         } catch (err) {
             setError(err.message);
@@ -187,6 +191,10 @@ export default function ProfileContent() {
         try {
             const data = await uploadAvatar(file);
             setProfile({ ...profile, avatar: data.avatar });
+            // Update global context to reflect new avatar immediately
+            if (currentUser) {
+                setCurrentUser({ ...currentUser, photoURL: data.avatar });
+            }
         } catch (err) {
             console.error(err);
         }
