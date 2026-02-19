@@ -749,12 +749,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { auth } from '../config/firebase.js';
+import { API_URL } from '../servicies/api.js';
 import Editor from '../components/Editor';
 import ArticleView from '../components/ArticleView';
 import ProfileSettings from '../components/ProfileSettings';
+import SettingsPage from '../components/Settingspage';
 import LoginPromptModal from '../components/LoginPromptModal';
-import FollowingPreferencesModal from '../components/FollowingPreferencesModal';
-import Onboarding from '../components/Onboarding';
+import SkeletonCard from '../components/SkeletonCard';
+import { useToast } from '../components/Toast';
+import FloatingReaction from '../components/FloatingReaction';
 import {
   Home,
   PenTool,
@@ -791,6 +794,10 @@ export default function Dashboard() {
   const { currentUser, signOut } = useAuth();
   const { isDark, setIsDark } = useContext(ThemeContext);
   const navigate = useNavigate();
+  const toast = useToast();
+  const [likingId, setLikingId] = useState(null); // tracks which heart is animating
+  const [likeReaction, setLikeReaction] = useState(false);
+  const [saveReaction, setSaveReaction] = useState(false);
   const [activeTab, setActiveTab] = useState('for-you');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState('home');
@@ -813,6 +820,7 @@ export default function Dashboard() {
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [followingAuthor, setFollowingAuthor] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [editingBlog, setEditingBlog] = useState(null);
 
   // Check onboarding status when user loads
   useEffect(() => {
@@ -845,23 +853,23 @@ export default function Dashboard() {
 
   // Helper to get Firebase token
   const getToken = async () => {
-    const user = auth.currentUser;
-    if (!user) return null;
-    return await user.getIdToken(true);
+    if (!currentUser) return null;
+    return await currentUser.getIdToken(true);
   };
 
   // Like handler for blog cards
   const handleLike = async (blogId) => {
     try {
       const token = await getToken();
-      if (!token) return;
-      const res = await fetch(`http://localhost:5000/api/blogs/${blogId}/like`, {
+      if (!token) { setShowLoginPrompt(true); return; }
+      setLikingId(blogId); // trigger heart-pop
+      setTimeout(() => setLikingId(null), 500);
+      const res = await fetch(`${API_URL}/api/blogs/${blogId}/like`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.success) {
-        // Update blogs state with new like count
         setBlogs(prev => prev.map(b =>
           b._id === blogId
             ? {
@@ -872,23 +880,36 @@ export default function Dashboard() {
             }
             : b
         ));
+        toast(data.data.isLiked ? '❤️ Liked!' : 'Like removed', data.data.isLiked ? 'like' : 'info');
+        if (data.data.isLiked) {
+          setLikeReaction(v => !v); // flip to retrigger animation
+        }
       }
     } catch (error) {
       console.error('Like error:', error);
     }
   };
 
-  // Saved/bookmarked blogs state
+  // Saved/bookmarked blogs — keyed by user UID so each account has its own list
+  const savedKey = currentUser ? `savedBlogs_${currentUser.uid}` : 'savedBlogs_guest';
   const [savedBlogs, setSavedBlogs] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('savedBlogs') || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(savedKey) || '[]'); } catch { return []; }
   });
+
+  // Re-load saved list when the logged-in user changes (e.g. after sign-in/out)
+  useEffect(() => {
+    try { setSavedBlogs(JSON.parse(localStorage.getItem(savedKey) || '[]')); } catch { setSavedBlogs([]); }
+  }, [currentUser?.uid]);
 
   const handleSave = (blogId) => {
     setSavedBlogs(prev => {
       const updated = prev.includes(blogId)
         ? prev.filter(id => id !== blogId)
         : [...prev, blogId];
-      localStorage.setItem('savedBlogs', JSON.stringify(updated));
+      localStorage.setItem(savedKey, JSON.stringify(updated));
+      if (!prev.includes(blogId)) {
+        setSaveReaction(v => !v); // only fire popup when saving (not unsaving)
+      }
       return updated;
     });
   };
@@ -898,23 +919,22 @@ export default function Dashboard() {
       const token = await getToken();
       if (!token) return;
 
-      const res = await fetch(`http://localhost:5000/api/blogs/${blogId}`, {
+      const res = await fetch(`${API_URL}/api/blogs/${blogId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       const data = await res.json();
       if (data.success) {
-        // Remove from blogs state
         setBlogs(prev => prev.filter(b => b._id !== blogId));
         setMyBlogs(prev => prev.filter(b => b._id !== blogId));
-        alert('Story deleted successfully!');
+        toast('Story deleted successfully', 'delete');
       } else {
-        alert('Failed to delete story: ' + (data.message || 'Unknown error'));
+        toast('Failed to delete: ' + (data.message || 'Unknown error'), 'error');
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Failed to delete story. Please try again.');
+      toast('Failed to delete story. Please try again.', 'error');
     }
   };
 
@@ -923,7 +943,7 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         // Fetch all blogs for home feed (public, no token needed)
-        const blogsRes = await fetch('http://localhost:5000/api/blogs');
+        const blogsRes = await fetch(`${API_URL}/api/blogs`);
         const blogsData = await blogsRes.json();
         if (blogsData.success) {
           setBlogs(blogsData.data);
@@ -932,7 +952,7 @@ export default function Dashboard() {
         // Fetch user's blogs and stats if logged in
         const token = await getToken();
         if (token) {
-          const myBlogsRes = await fetch('http://localhost:5000/api/blogs/user/my-blogs', {
+          const myBlogsRes = await fetch(`${API_URL}/api/blogs/user/my-blogs`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const myBlogsData = await myBlogsRes.json();
@@ -940,7 +960,7 @@ export default function Dashboard() {
             setMyBlogs(myBlogsData.data);
           }
 
-          const statsRes = await fetch('http://localhost:5000/api/blogs/user/stats', {
+          const statsRes = await fetch(`${API_URL}/api/blogs/user/stats`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const statsData = await statsRes.json();
@@ -1016,29 +1036,65 @@ export default function Dashboard() {
                 {myBlogs.map((blog) => (
                   <div
                     key={blog._id}
-                    className={`p-6 rounded-xl border cursor-pointer hover:shadow-lg transition ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'
-                      }`}
-                    onClick={() => alert(`Opening: ${blog.title}\n\nFull article view coming soon!`)}
+                    className={`p-6 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}
                   >
-                    <h3 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      {blog.title}
-                    </h3>
-                    <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {blog.excerpt}
-                    </p>
-                    <div className={`flex items-center gap-4 text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                      <span>{new Date(blog.publishedAt).toLocaleDateString()}</span>
-                      <span>·</span>
-                      <span>{blog.readTime} min read</span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1">
-                        <Eye className="w-4 h-4" />
-                        {blog.views}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Heart className="w-4 h-4" />
-                        {blog.likes.length}
-                      </span>
+                    {/* Blog header with title and action buttons */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div
+                        className="flex-1 cursor-pointer"
+                        onClick={() => setSelectedArticle(blog)}
+                      >
+                        <h3 className={`text-2xl font-bold mb-2 hover:underline ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {blog.title}
+                        </h3>
+                        <p className={`mb-4 line-clamp-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {blog.excerpt}
+                        </p>
+                        <div className={`flex items-center gap-4 text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                          <span>{new Date(blog.publishedAt).toLocaleDateString()}</span>
+                          <span>·</span>
+                          <span>{blog.readTime} min read</span>
+                          <span>·</span>
+                          <span className="flex items-center gap-1">
+                            <Eye className="w-4 h-4" />
+                            {blog.views}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Heart className="w-4 h-4" />
+                            {blog.likes.length}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Owner-only action buttons */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => {
+                            setEditingBlog(blog);
+                            setShowEditor(true);
+                          }}
+                          title="Edit story"
+                          className={`p-2 rounded-lg transition ${isDark
+                            ? 'text-gray-400 hover:text-white hover:bg-slate-700'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                            }`}
+                        >
+                          <Edit3 className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Delete this story? This cannot be undone.')) {
+                              handleDelete(blog._id);
+                            }
+                          }}
+                          title="Delete story"
+                          className={`p-2 rounded-lg transition ${isDark
+                            ? 'text-red-400 hover:text-red-300 hover:bg-slate-700'
+                            : 'text-red-500 hover:text-red-700 hover:bg-red-50'
+                            }`}
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1074,18 +1130,18 @@ export default function Dashboard() {
             <p className={`text-gray-500`}>Writers and publications you follow will appear here</p>
           </div>
         );
-      case 'favorites': {
+      case 'liked': {
         const likedBlogs = blogs.filter(b => b.likes?.includes(currentUser?.uid));
         return (
           <div>
             <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               <Heart className="w-6 h-6 inline mr-2 text-red-500" />
-              Favorites
+              Liked Posts
             </h2>
             {likedBlogs.length === 0 ? (
               <div className="text-center py-16">
                 <Heart className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No liked articles yet</p>
+                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No liked posts yet</p>
                 <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                   Click the ❤️ on articles you enjoy
                 </p>
@@ -1165,25 +1221,7 @@ export default function Dashboard() {
           </div>
         );
       case 'settings':
-        return (
-          <div className="max-w-2xl mx-auto py-12">
-            <h2 className={`text-3xl font-bold mb-8 ${isDark ? 'text-white' : 'text-gray-900'}`}>Settings</h2>
-            <div className="space-y-4">
-              <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
-                <h3 className={`font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Account</h3>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {currentUser?.email}
-                </p>
-              </div>
-              <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
-                <h3 className={`font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Theme</h3>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Current theme: {isDark ? 'Dark' : 'Light'}
-                </p>
-              </div>
-            </div>
-          </div>
-        );
+        return <SettingsPage onClose={() => setActiveSection('home')} />;
       default: // home
         return null; // Show default feed
     }
@@ -1195,19 +1233,38 @@ export default function Dashboard() {
       <ArticleView
         article={selectedArticle}
         isDark={isDark}
+        onToggleDark={() => setIsDark(!isDark)}
         onClose={() => setSelectedArticle(null)}
         onLike={() => handleLike(selectedArticle._id)}
         onSave={() => handleSave(selectedArticle._id)}
         isLiked={selectedArticle.likes?.includes(currentUser?.uid)}
         isSaved={savedBlogs.includes(selectedArticle._id)}
         currentUser={currentUser}
+        onEdit={(blog) => {
+          setSelectedArticle(null);
+          setEditingBlog(blog);
+          setShowEditor(true);
+        }}
+        onDelete={(blogId) => {
+          handleDelete(blogId);
+          setSelectedArticle(null);
+        }}
       />
     );
   }
 
-  // Show Editor if Write button clicked
+  // Show Editor if Write button clicked or Edit button clicked
   if (showEditor) {
-    return <Editor onClose={() => setShowEditor(false)} isDark={isDark} />;
+    return (
+      <Editor
+        onClose={() => {
+          setShowEditor(false);
+          setEditingBlog(null);
+        }}
+        isDark={isDark}
+        editBlog={editingBlog}
+      />
+    );
   }
 
   // Show onboarding for first-time users
@@ -1275,7 +1332,7 @@ export default function Dashboard() {
               <div className={`h-px my-6 ${isDark ? 'bg-slate-700' : 'bg-gray-200'}`}></div>
 
               <NavItem icon={TrendingUp} label="Following" active={activeSection === 'following'} onClick={() => setActiveSection('following')} isDark={isDark} />
-              <NavItem icon={Heart} label="Favorites" active={activeSection === 'favorites'} onClick={() => setActiveSection('favorites')} isDark={isDark} />
+              <NavItem icon={Heart} label="Liked Posts" active={activeSection === 'liked'} onClick={() => setActiveSection('liked')} isDark={isDark} />
               <NavItem icon={Bookmark} label="Collections" active={activeSection === 'collections'} onClick={() => setActiveSection('collections')} isDark={isDark} />
               <NavItem icon={Bell} label="Notifications" active={activeSection === 'notifications'} onClick={() => setActiveSection('notifications')} isDark={isDark} />
               <NavItem icon={Settings} label="Settings" active={activeSection === 'settings'} onClick={() => setActiveSection('settings')} isDark={isDark} />
@@ -1576,8 +1633,8 @@ export default function Dashboard() {
                     {/* Articles */}
                     <div className="space-y-8">
                       {loading ? (
-                        <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Loading articles...
+                        <div className="space-y-8">
+                          {[1, 2, 3].map(i => <SkeletonCard key={i} isDark={isDark} />)}
                         </div>
                       ) : blogs.length === 0 ? (
                         <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -1634,8 +1691,8 @@ export default function Dashboard() {
                                 Showing {filteredBlogs.length} article{filteredBlogs.length !== 1 ? 's' : ''} in <strong className={isDark ? 'text-white' : 'text-gray-900'}>{categoryFilter}</strong>
                               </div>
                             )}
-                            {filteredBlogs.map((blog) => (
-                              <ArticleCard key={blog._id} article={{
+                            {filteredBlogs.map((blog, idx) => (
+                              <ArticleCard key={blog._id} staggerIndex={idx} likingId={likingId} article={{
                                 id: blog._id,
                                 title: blog.title,
                                 excerpt: blog.excerpt,
@@ -1723,6 +1780,10 @@ export default function Dashboard() {
           </main >
         </div >
       </div >
+
+      {/* Floating Reaction Popups */}
+      <FloatingReaction type="like" active={likeReaction} />
+      <FloatingReaction type="save" active={saveReaction} />
     </>
   );
 }
@@ -1766,7 +1827,18 @@ function NavItem({ icon: Icon, label, active, badge, onClick, isDark, iconOnly }
   );
 }
 
-function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArticleClick, onFollowAuthor, currentUser, onDelete }) {
+// Category → color chip mapping
+const CATEGORY_COLORS = {
+  General: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  Technology: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  Health: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  Writing: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  Productivity: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+  Art: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
+  Science: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
+};
+
+function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArticleClick, onFollowAuthor, currentUser, onDelete, staggerIndex = 0, likingId }) {
   const [showMenu, setShowMenu] = useState(false);
 
   const handleArticleClick = () => {
@@ -1816,62 +1888,81 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
     });
   };
 
+  const staggerClass = [`stagger-1`, `stagger-2`, `stagger-3`, `stagger-4`, `stagger-5`, `stagger-6`][Math.min(staggerIndex, 5)];
+  const tagColor = CATEGORY_COLORS[article.category] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300';
+  const isHeartPopping = likingId === article.id;
+
   return (
     <div
-      className={`group cursor-pointer border-b pb-8 ${isDark ? 'border-slate-700' : 'border-gray-200'} hover:opacity-80 transition`}
+      className={`animate-card-rise ${staggerClass} card-hover group cursor-pointer rounded-2xl p-5 mb-4
+        border transition-all
+        ${isDark
+          ? 'glass-card border-slate-700/50'
+          : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
+        }`}
     >
-      <div className="flex justify-between items-center gap-8">
+      <div className="flex justify-between items-start gap-6">
         <div className="flex-1 min-w-0">
-          {/* Author + Menu */}
-          <div className="flex items-center justify-between mb-2">
+          {/* Author row */}
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2" onClick={handleArticleClick}>
-              {article.authorImage ? (
-                <img
-                  src={article.authorImage}
-                  alt={article.author}
-                  className="w-5 h-5 rounded-full object-cover border border-gray-200 dark:border-slate-600"
-                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                />
-              ) : null}
-              <div
-                className={`w-5 h-5 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-[10px] flex-shrink-0`}
-                style={{ display: article.authorImage ? 'none' : 'flex' }}
-              >
-                {getInitials(article.author)}
+              {/* Gradient Avatar Ring */}
+              <div className="p-[2px] rounded-full bg-gradient-to-br from-scribe-green via-scribe-sage to-scribe-mint flex-shrink-0">
+                {article.authorImage ? (
+                  <img
+                    src={article.authorImage}
+                    alt={article.author}
+                    className="w-6 h-6 rounded-full object-cover border-2 border-white dark:border-slate-900"
+                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                  />
+                ) : null}
+                <div
+                  className={`w-6 h-6 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-[10px] flex-shrink-0`}
+                  style={{ display: article.authorImage ? 'none' : 'flex' }}
+                >
+                  {getInitials(article.author)}
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-sm">
-                <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                  {article.author}
-                </span>
-                <span className={`${isDark ? 'text-gray-500' : 'text-gray-500'}`}>in</span>
-                <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{article.category}</span>
-              </div>
+              <span className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{article.author}</span>
+              <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>in</span>
+              {/* Category chip */}
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tagColor}`}>{article.category}</span>
             </div>
           </div>
 
           {/* Title */}
-          <h2 onClick={handleArticleClick} className={`text-xl md:text-2xl font-bold font-serif mb-1 line-clamp-2 group-hover:underline decoration-glide transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <h2
+            onClick={handleArticleClick}
+            className={`text-xl md:text-2xl font-bold font-serif mb-1 line-clamp-2 group-hover:text-scribe-green transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'}`}
+          >
             {article.title.replace(/^#+\s*|^\*+|\*+$/g, '')}
           </h2>
 
           {/* Excerpt */}
-          <p onClick={handleArticleClick} className={`text-base font-sans mb-3 line-clamp-2 hidden sm:block ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p
+            onClick={handleArticleClick}
+            className={`text-sm mb-3 line-clamp-2 hidden sm:block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}
+          >
             {article.excerpt.replace(/^#+\s*|^\*+|\*+$/g, '')}
           </p>
 
           {/* Meta */}
-          <div className="flex items-center justify-between pt-2">
-            <div className={`flex items-center gap-4 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <div className="flex items-center justify-between pt-1">
+            <div className={`flex items-center gap-4 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
               <span>{article.date}</span>
-
+              <span>{article.readTime}</span>
+              {/* Like button with heart-pop */}
               <button
                 onClick={(e) => { e.stopPropagation(); onProtectedAction(() => onLike && onLike()); }}
-                className={`flex items-center gap-1 hover:text-gray-900 dark:hover:text-gray-200 transition ${article.isLiked ? 'text-red-500' : ''}`}
+                className={`flex items-center gap-1 transition ${article.isLiked ? 'text-red-500' : isDark ? 'hover:text-gray-300' : 'hover:text-gray-700'}`}
               >
-                <Heart className={`w-4 h-4 ${article.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                <Heart
+                  className={`w-4 h-4 transition-all duration-200
+                    ${isHeartPopping ? 'animate-heart-pop' : ''}
+                    ${article.isLiked ? 'fill-red-500 text-red-500 scale-110' : ''}`}
+                />
                 <span>{(article.claps || 0).toLocaleString()}</span>
               </button>
-
               <div className="flex items-center gap-1">
                 <MessageSquare className="w-4 h-4" />
                 <span>{article.comments || 0}</span>
@@ -1881,26 +1972,27 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
             <div className="flex items-center gap-2">
               <button
                 onClick={(e) => { e.stopPropagation(); onProtectedAction(() => onSave && onSave()); }}
-                className={`transition-colors p-1 ${article.isSaved ? 'text-scribe-green' : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'}`}
+                className={`transition-all p-1 ${article.isSaved ? 'text-scribe-green scale-110' : 'text-gray-400 hover:text-scribe-green dark:text-gray-500 dark:hover:text-scribe-sage'}`}
               >
-                <Bookmark className={`w-5 h-5 ${article.isSaved ? 'fill-scribe-green text-scribe-green' : ''}`} />
+                <Bookmark className={`w-4 h-4 ${article.isSaved ? 'fill-scribe-green' : ''}`} />
               </button>
               <div className="relative">
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
                   className={`transition ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                  <MoreVertical className="w-5 h-5" />
+                  <MoreVertical className="w-4 h-4" />
                 </button>
-                {/* Dropdown Menu */}
                 {showMenu && (
-                  <div className="absolute right-0 top-8 z-20 w-48 bg-white dark:bg-slate-800 rounded shadow-xl border border-gray-200 dark:border-slate-700 py-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="absolute right-0 top-8 z-20 w-48 rounded-xl shadow-2xl border py-1 animate-fadeIn"
+                    style={{ background: isDark ? 'rgba(30,41,59,0.95)' : 'white', borderColor: isDark ? '#334155' : '#e5e7eb' }}
+                    onClick={(e) => e.stopPropagation()}>
                     {currentUser && article.authorEmail === currentUser.email ? (
-                      <button onClick={(e) => { e.stopPropagation(); handleMenuAction('delete'); }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50 dark:hover:bg-slate-700">Delete story</button>
+                      <button onClick={(e) => { e.stopPropagation(); handleMenuAction('delete'); }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">Delete story</button>
                     ) : (
                       <>
-                        <button onClick={(e) => { e.stopPropagation(); handleMenuAction('mute-author'); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700">Mute author</button>
-                        <button onClick={(e) => { e.stopPropagation(); handleMenuAction('report'); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700">Report</button>
+                        <button onClick={(e) => { e.stopPropagation(); handleMenuAction('mute-author'); }} className={`w-full text-left px-4 py-2 text-sm ${isDark ? 'text-gray-300 hover:bg-slate-700/60' : 'text-gray-700 hover:bg-gray-50'}`}>Mute author</button>
+                        <button onClick={(e) => { e.stopPropagation(); handleMenuAction('report'); }} className={`w-full text-left px-4 py-2 text-sm ${isDark ? 'text-gray-300 hover:bg-slate-700/60' : 'text-gray-700 hover:bg-gray-50'}`}>Report</button>
                       </>
                     )}
                   </div>
@@ -1910,13 +2002,13 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
           </div>
         </div>
 
-        {/* Image */}
+        {/* Cover Image */}
         {article.image && (
           <img
             onClick={handleArticleClick}
             src={article.image}
             alt={article.title}
-            className="w-[112px] h-[112px] sm:w-[160px] sm:h-[107px] object-cover flex-shrink-0 ml-4 sm:ml-8"
+            className="w-24 h-24 sm:w-36 sm:h-24 object-cover rounded-xl flex-shrink-0 shadow-sm"
           />
         )}
       </div>

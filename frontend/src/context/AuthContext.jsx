@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
 	onAuthStateChanged,
-	signOut as firebaseSignOut
+	signOut as firebaseSignOut,
+	checkActionCode as firebaseCheckActionCode,
+	applyActionCode as firebaseApplyActionCode
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { auth } from '../config/firebase.js';
 
 // Create Auth Context
 const AuthContext = createContext({});
@@ -79,10 +81,15 @@ export const AuthProvider = ({ children }) => {
 		}
 	}, []);
 
+	const checkActionCode = async (code) => firebaseCheckActionCode(auth, code);
+	const applyActionCode = async (code) => firebaseApplyActionCode(auth, code);
+
 	const value = {
 		currentUser,
 		loading,
-		signOut
+		signOut,
+		checkActionCode,
+		applyActionCode
 	};
 
 	return (

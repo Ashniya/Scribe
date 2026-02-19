@@ -8,46 +8,43 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
 import About from './pages/About';
-import LoginPromptModal from './components/LoginPromptModal'
-// import admin from 'firebase-admin';
+import { ToastProvider } from './components/Toast';
+
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <AuthProvider>
-          <Routes>
-            {/* Public route - accessible to everyone */}
-            <Route path="/" element={<Landing />} />
+      <ToastProvider>
+        <Router>
+          <AuthProvider>
+            <Routes>
+              {/* Public route */}
+              <Route path="/" element={<Landing />} />
 
-            {/* About page */}
-            <Route path="/about" element={<About />} />
+              {/* About page */}
+              <Route path="/about" element={<About />} />
 
-            {/* Login route - only accessible when NOT logged in */}
-            <Route
-              path="/login"
-              element={
-                <PublicOnlyRoute>
-                  <LoginPage />
-                </PublicOnlyRoute>
-              }
-            />
+              {/* Login route - only when NOT logged in */}
+              <Route
+                path="/login"
+                element={
+                  <PublicOnlyRoute>
+                    <LoginPage />
+                  </PublicOnlyRoute>
+                }
+              />
 
-            {/* Forgot Password route */}
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* Forgot Password */}
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
-            {/* Protected route - only accessible when logged in */}
-            <Route
-              path="/dashboard"
-              element={
-                <Dashboard />
-              }
-            />
+              {/* Protected dashboard */}
+              <Route path="/dashboard" element={<Dashboard />} />
 
-            {/* 404 - Not found */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AuthProvider>
-      </Router>
+              {/* 404 */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AuthProvider>
+        </Router>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

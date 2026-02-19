@@ -17,16 +17,21 @@ connectDB();
 
 const app = express();
 
-// Body parser middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Enable CORS
-app.use(cors({
-  origin: ['http://localhost:5174', 'http://localhost:5175', process.env.FRONTEND_URL].filter(Boolean),
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+// Enable CORS — MUST be before body parsers and routes
+// origin: true mirrors the request's own origin back, which is safe for local dev
+// and is required when credentials: true is used (cannot use wildcard '*')
+const corsOptions = {
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
-}));
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight for all routes
+
+// Body parser middleware — 50mb limit to support base64 embedded images in blog content
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
 // Routes
 app.get('/', (req, res) => {
