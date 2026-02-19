@@ -1,6 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
+<<<<<<< HEAD
+=======
+import { getFirestore } from "firebase/firestore";
+>>>>>>> origin/feature/aditi
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,6 +16,7 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+<<<<<<< HEAD
 // Validate Firebase config
 const isConfigValid = firebaseConfig.apiKey &&
   firebaseConfig.apiKey !== 'your-api-key-here' &&
@@ -38,6 +43,12 @@ if (!isConfigValid) {
 let app;
 let analytics;
 let auth;
+=======
+let app;
+let analytics;
+let auth;
+let db;
+>>>>>>> origin/feature/aditi
 
 try {
   app = initializeApp(firebaseConfig);
@@ -45,8 +56,16 @@ try {
     analytics = getAnalytics(app);
   }
   auth = getAuth(app);
+<<<<<<< HEAD
+=======
+  db = getFirestore(app);
+>>>>>>> origin/feature/aditi
 } catch (error) {
   console.error('Error initializing Firebase:', error);
 }
 
+<<<<<<< HEAD
 export { auth };
+=======
+export { auth, db };
+>>>>>>> origin/feature/aditi

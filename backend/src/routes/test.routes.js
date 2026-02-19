@@ -1,6 +1,11 @@
 import express from 'express';
+<<<<<<< HEAD
 import { db } from '../config/firebase.js';
 import admin from '../config/firebase.js';
+=======
+import { db } from '../config/firebase-admin.js';
+import admin from '../config/firebase-admin.js';
+>>>>>>> origin/feature/aditi
 
 const router = express.Router();
 

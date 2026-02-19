@@ -1,14 +1,24 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Heart, MessageSquare, Bookmark, Eye, Clock, Send, Trash2, MoreVertical, Edit3, Share2, Linkedin, Twitter, Facebook } from 'lucide-react';
 import { auth } from '../config/firebase.js';
 import { apiCall, publicApiCall } from '../servicies/api.js';
 
 export default function ArticleView({ article, isDark, onClose, onLike, onSave, isLiked, isSaved, currentUser, onEdit, onDelete, onToggleDark }) {
+=======
+import React, { useState, useEffect, useContext } from 'react';
+import { ArrowLeft, Heart, MessageSquare, Bookmark, Eye, Clock, Send, Trash2, MoreVertical, Edit3, Pin, Settings, BarChart3, EyeOff, MessageCircleOff, Share2, Linkedin, Instagram, Twitter, Facebook, Repeat, Timer } from 'lucide-react';
+import { repostBlog, trackReadTime } from '../utils/api.js';
+import { auth } from '../config/firebase.js';
+
+export default function ArticleView({ article, isDark, onClose, onLike, onSave, isLiked, isSaved, currentUser }) {
+>>>>>>> origin/feature/aditi
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [loadingComments, setLoadingComments] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showArticleMenu, setShowArticleMenu] = useState(false);
+<<<<<<< HEAD
     const [scrollProgress, setScrollProgress] = useState(0);
     const [isSwinging, setIsSwinging] = useState(false);
     const containerRef = useRef(null);
@@ -25,12 +35,30 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
         const total = el.scrollHeight - el.clientHeight;
         setScrollProgress(total > 0 ? Math.min(100, (scrolled / total) * 100) : 0);
     };
+=======
+
+    // Time Tracking
+    useEffect(() => {
+        const startTime = Date.now();
+        return () => {
+            const duration = Math.floor((Date.now() - startTime) / 1000);
+            if (duration > 5 && currentUser) {
+                trackReadTime(article._id, duration).catch(err => console.error('Time tracking error:', err));
+            }
+        };
+    }, [article._id, currentUser]);
+>>>>>>> origin/feature/aditi
 
     // Fetch comments
     useEffect(() => {
         const fetchComments = async () => {
             try {
+<<<<<<< HEAD
                 const data = await publicApiCall(`/api/comments/${article._id}`);
+=======
+                const res = await fetch(`http://localhost:5000/api/comments/${article._id}`);
+                const data = await res.json();
+>>>>>>> origin/feature/aditi
                 if (data.success) {
                     setComments(data.data);
                 }
@@ -43,6 +71,22 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
         fetchComments();
     }, [article._id]);
 
+<<<<<<< HEAD
+=======
+    const handleRepost = async () => {
+        if (!currentUser) return alert('Please log in to repost.');
+        if (confirm('Repost this story to your profile?')) {
+            try {
+                await repostBlog(article._id);
+                alert('Reposted successfully!');
+            } catch (error) {
+                console.error('Repost error:', error);
+                alert('Failed to repost: ' + error.message);
+            }
+        }
+    };
+
+>>>>>>> origin/feature/aditi
     // Post comment
     const handlePostComment = async () => {
         if (!newComment.trim()) return;
@@ -55,10 +99,23 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
 
         setSubmitting(true);
         try {
+<<<<<<< HEAD
             const data = await apiCall(`/api/comments/${article._id}`, {
                 method: 'POST',
                 body: JSON.stringify({ content: newComment.trim() })
             });
+=======
+            const token = await user.getIdToken(true);
+            const res = await fetch(`http://localhost:5000/api/comments/${article._id}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: newComment.trim() })
+            });
+            const data = await res.json();
+>>>>>>> origin/feature/aditi
             if (data.success) {
                 setComments(prev => [data.data, ...prev]);
                 setNewComment('');
@@ -76,9 +133,18 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
         if (!user) return;
 
         try {
+<<<<<<< HEAD
             const data = await apiCall(`/api/comments/${commentId}`, {
                 method: 'DELETE',
             });
+=======
+            const token = await user.getIdToken(true);
+            const res = await fetch(`http://localhost:5000/api/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+>>>>>>> origin/feature/aditi
             if (data.success) {
                 setComments(prev => prev.filter(c => c._id !== commentId));
             }
@@ -122,6 +188,7 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
     };
 
     return (
+<<<<<<< HEAD
         <div
             ref={containerRef}
             onScroll={handleScroll}
@@ -251,6 +318,115 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                             {isDark ? 'Turn on' : 'Turn off'}
                         </span>
                     </button>
+=======
+        <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-white'} transition-colors`}>
+            {/* Top Bar */}
+            <div className={`sticky top-0 z-10 border-b ${isDark ? 'bg-slate-900/95 backdrop-blur border-slate-700' : 'bg-white/95 backdrop-blur border-gray-200'}`}>
+                <div className="max-w-4xl mx-auto px-4 sm:px-8 py-4">
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={onClose}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${isDark ? 'hover:bg-slate-800 text-gray-400' : 'hover:bg-gray-100 text-gray-600'}`}
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                            <span>Back</span>
+                        </button>
+
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={onLike}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition text-sm ${isLiked
+                                    ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
+                                    : isDark ? 'text-gray-400 hover:bg-slate-800' : 'text-gray-500 hover:bg-gray-100'
+                                    }`}
+                            >
+                                <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
+                                {article.likescount || article.likes?.length || 0}
+                            </button>
+                            <button
+                                onClick={onSave}
+                                className={`p-2 rounded-full transition ${isSaved
+                                    ? 'text-scribe-green'
+                                    : isDark ? 'text-gray-400 hover:bg-slate-800' : 'text-gray-500 hover:bg-gray-100'
+                                    }`}
+                            >
+                                <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-scribe-green' : ''}`} />
+                            </button>
+
+                            {/* Article Menu (only for article owner) */}
+                            {currentUser?.uid === article.authorId && (
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowArticleMenu(!showArticleMenu)}
+                                        className={`p-2 rounded-full transition ${isDark ? 'text-gray-400 hover:bg-slate-800' : 'text-gray-500 hover:bg-gray-100'}`}
+                                    >
+                                        <MoreVertical className="w-5 h-5" />
+                                    </button>
+
+                                    {showArticleMenu && (
+                                        <>
+                                            <div className="fixed inset-0 z-10" onClick={() => setShowArticleMenu(false)} />
+                                            <div className={`absolute right-0 top-12 z-20 w-64 rounded-lg shadow-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                                                <button
+                                                    onClick={() => { setShowArticleMenu(false); alert('Edit story - Coming soon!'); }}
+                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                                                >
+                                                    <Edit3 className="w-4 h-4" />
+                                                    <span className="text-sm">Edit story</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => { setShowArticleMenu(false); alert('Pinned to profile!'); }}
+                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                                                >
+                                                    <Pin className="w-4 h-4" />
+                                                    <span className="text-sm">Pin this story to your profile</span>
+                                                </button>
+                                                <div className={`border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`} />
+                                                <button
+                                                    onClick={() => { setShowArticleMenu(false); alert('Story settings - Coming soon!'); }}
+                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                                                >
+                                                    <Settings className="w-4 h-4" />
+                                                    <span className="text-sm">Story settings</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => { setShowArticleMenu(false); alert(`Views: ${article.views || 0}\nLikes: ${article.likescount || 0}\nComments: ${comments.length}`); }}
+                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                                                >
+                                                    <BarChart3 className="w-4 h-4" />
+                                                    <span className="text-sm">Story stats</span>
+                                                </button>
+                                                <div className={`border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`} />
+                                                <button
+                                                    onClick={() => { setShowArticleMenu(false); alert('Highlights hidden'); }}
+                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                                                >
+                                                    <EyeOff className="w-4 h-4" />
+                                                    <span className="text-sm">Hide highlights</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => { setShowArticleMenu(false); alert('Responses hidden'); }}
+                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${isDark ? 'hover:bg-slate-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                                                >
+                                                    <MessageCircleOff className="w-4 h-4" />
+                                                    <span className="text-sm">Hide responses</span>
+                                                </button>
+                                                <div className={`border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`} />
+                                                <button
+                                                    onClick={() => { setShowArticleMenu(false); if (confirm('Delete this story?')) alert('Story deleted!'); }}
+                                                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition rounded-b-lg"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                    <span className="text-sm">Delete story</span>
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+>>>>>>> origin/feature/aditi
                 </div>
             </div>
 
@@ -270,6 +446,7 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
 
                 {/* Author Info */}
                 <div className="flex items-center gap-4 mb-8">
+<<<<<<< HEAD
                     {
                         article.authorPhotoURL ? (
                             <img
@@ -286,6 +463,23 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                     <div>  <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                         {article.authorName}
                     </h3>
+=======
+                    {article.authorPhotoURL ? (
+                        <img
+                            src={article.authorPhotoURL}
+                            alt={article.authorName}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                        />
+                    ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-bold text-lg">
+                            {article.authorName?.[0]?.toUpperCase() || '?'}
+                        </div>
+                    )}
+                    <div>
+                        <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {article.authorName}
+                        </h3>
+>>>>>>> origin/feature/aditi
                         <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                             <span>{new Date(article.publishedAt || article.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
                             <span>·</span>
@@ -302,6 +496,7 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                     </div>
                 </div>
 
+<<<<<<< HEAD
 
                 {/* Cover Image */}
                 {
@@ -315,6 +510,18 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                         </div>
                     )
                 }
+=======
+                {/* Cover Image */}
+                {article.coverImage && (
+                    <div className="mb-10 rounded-2xl overflow-hidden">
+                        <img
+                            src={article.coverImage}
+                            alt={article.title}
+                            className="w-full max-h-[500px] object-cover"
+                        />
+                    </div>
+                )}
+>>>>>>> origin/feature/aditi
 
                 {/* Content */}
                 <div className={`prose prose-lg max-w-none leading-relaxed text-lg ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -322,6 +529,7 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                 </div>
 
                 {/* Tags */}
+<<<<<<< HEAD
                 {
                     article.tags && article.tags.length > 0 && (
                         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-slate-700">
@@ -338,6 +546,22 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                         </div>
                     )
                 }
+=======
+                {article.tags && article.tags.length > 0 && (
+                    <div className="mt-12 pt-8 border-t border-gray-200 dark:border-slate-700">
+                        <div className="flex flex-wrap gap-2">
+                            {article.tags.map((tag, i) => (
+                                <span
+                                    key={i}
+                                    className={`px-3 py-1 rounded-full text-sm ${isDark ? 'bg-slate-800 text-gray-400' : 'bg-gray-100 text-gray-600'}`}
+                                >
+                                    {tag}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+>>>>>>> origin/feature/aditi
 
                 {/* Bottom Actions */}
                 <div className={`mt-12 pt-8 border-t flex items-center justify-between ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
@@ -357,6 +581,17 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                             <MessageSquare className="w-5 h-5" />
                             {comments.length} comments
                         </span>
+<<<<<<< HEAD
+=======
+                        <button
+                            onClick={handleRepost}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full transition border ${isDark ? 'text-gray-400 border-slate-700 hover:bg-slate-800' : 'text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+                            title="Repost this story"
+                        >
+                            <Repeat className="w-5 h-5" />
+                            <span>Repost</span>
+                        </button>
+>>>>>>> origin/feature/aditi
                     </div>
                     <button
                         onClick={onSave}
@@ -457,6 +692,7 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                     </h3>
 
                     {/* Comment Input */}
+<<<<<<< HEAD
                     <div className={`mb-8 p-4 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
                         <div className="flex items-start gap-3">
                             {currentUser?.photoURL ? (
@@ -502,6 +738,61 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                             </div>
                         </div>
                     </div>
+=======
+                    {(currentUser?.uid === article.authorId || currentUser?._id === article.authorId) ? (
+                        <div className={`mb-8 p-6 rounded-xl border text-center ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
+                            <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                You can't comment on your own post.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className={`mb-8 p-4 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="flex items-start gap-3">
+                                {currentUser?.photoURL ? (
+                                    <img src={currentUser.photoURL} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                                ) : (
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                                        {currentUser?.displayName?.[0]?.toUpperCase() || currentUser?.email?.[0]?.toUpperCase() || '?'}
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <textarea
+                                        value={newComment}
+                                        onChange={(e) => setNewComment(e.target.value)}
+                                        placeholder={currentUser ? "Write a comment..." : "Log in to comment"}
+                                        disabled={!currentUser}
+                                        rows={3}
+                                        className={`w-full resize-none rounded-lg px-4 py-3 text-sm outline-none transition ${isDark
+                                            ? 'bg-slate-700 text-white placeholder-gray-500 border-slate-600 focus:border-slate-500'
+                                            : 'bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:border-gray-300'
+                                            } border`}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                                                handlePostComment();
+                                            }
+                                        }}
+                                    />
+                                    <div className="flex items-center justify-between mt-2">
+                                        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                            Ctrl+Enter to submit
+                                        </span>
+                                        <button
+                                            onClick={handlePostComment}
+                                            disabled={!newComment.trim() || submitting || !currentUser}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${newComment.trim() && !submitting && currentUser
+                                                ? 'bg-gradient-to-r from-scribe-green to-scribe-sage text-white hover:shadow-md'
+                                                : isDark ? 'bg-slate-700 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                }`}
+                                        >
+                                            <Send className="w-4 h-4" />
+                                            {submitting ? 'Posting...' : 'Comment'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+>>>>>>> origin/feature/aditi
 
                     {/* Comments List */}
                     {loadingComments ? (

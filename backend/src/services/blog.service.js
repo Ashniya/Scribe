@@ -51,8 +51,24 @@ export const createBlog = async (blogData) => {
     };
 };
 
+<<<<<<< HEAD
 export const findAllPublishedBlogs = async (limit = 50) => {
     const blogs = await Blog.find({ published: true })
+=======
+export const findAllPublishedBlogs = async (limit = 50, query = null) => {
+    let filter = { published: true };
+
+    if (query) {
+        filter.$or = [
+            { title: { $regex: query, $options: 'i' } },
+            { excerpt: { $regex: query, $options: 'i' } },
+            { tags: { $in: [new RegExp(query, 'i')] } },
+            { authorName: { $regex: query, $options: 'i' } }
+        ];
+    }
+
+    const blogs = await Blog.find(filter)
+>>>>>>> origin/feature/aditi
         .sort({ publishedAt: -1 })
         .limit(limit)
         .lean();
@@ -126,6 +142,142 @@ export const toggleLike = async (blogId, userId) => {
     };
 };
 
+<<<<<<< HEAD
+=======
+export const toggleSave = async (blogId, userId) => {
+    const blog = await Blog.findById(blogId);
+
+    if (!blog) return null;
+
+    const saves = blog.saves || [];
+    const saveIndex = saves.indexOf(userId);
+    let isSaved = false;
+
+    if (saveIndex > -1) {
+        // Unsave
+        saves.splice(saveIndex, 1);
+        isSaved = false;
+    } else {
+        // Save
+        saves.push(userId);
+        isSaved = true;
+    }
+
+    blog.saves = saves;
+    blog.saveCount = saves.length;
+    await blog.save();
+
+    // Also update User's savedPosts
+    const User = (await import('../models/User.js')).default;
+    const user = await User.findById(userId);
+
+    if (user) {
+        if (isSaved) {
+            if (!user.savedPosts.includes(blogId)) {
+                user.savedPosts.push(blogId);
+            }
+        } else {
+            user.savedPosts = user.savedPosts.filter(id => id.toString() !== blogId.toString());
+        }
+        await user.save();
+    }
+
+    return {
+        saveCount: saves.length,
+        isSaved
+    };
+};
+
+export const repostBlog = async (originalBlogId, userId) => {
+    const originalBlog = await Blog.findById(originalBlogId);
+    if (!originalBlog) throw new Error('Original blog not found');
+
+    // Prevent reposting a repost (link to original instead)
+    const sourceBlogId = originalBlog.isRepost ? originalBlog.originalPostId : originalBlog._id;
+    const sourceAuthorId = originalBlog.isRepost ? originalBlog.originalAuthor : originalBlog.authorId;
+
+    // Check if already reposted by this user
+    const existingRepost = await Blog.findOne({
+        repostedBy: userId,
+        originalPostId: sourceBlogId
+    });
+
+    if (existingRepost) {
+        throw new Error('You have already reposted this story');
+    }
+
+    const User = (await import('../models/User.js')).default;
+    const reposter = await User.findById(userId);
+
+    // Resolve original author's MongoDB _id if sourceAuthorId is a Firebase UID
+    let resolvedOriginalAuthorId = sourceAuthorId;
+    const mongoose = (await import('mongoose')).default;
+
+    if (!mongoose.Types.ObjectId.isValid(sourceAuthorId)) {
+        const originalUser = await User.findOne({ firebaseUid: sourceAuthorId });
+        if (originalUser) {
+            resolvedOriginalAuthorId = originalUser._id;
+        } else {
+            console.warn(`Could not resolve original author ID: ${sourceAuthorId}`);
+            // Fallback or throw? For now let it fail if strict, or set null?
+            // If schema requires ObjectId, this will still fail if we leave it as string.
+            // But if we can't find the user, we can't link effectively.
+        }
+    }
+
+    const repost = new Blog({
+        title: originalBlog.title,
+        content: originalBlog.content,
+        excerpt: originalBlog.excerpt,
+        category: originalBlog.category,
+        tags: originalBlog.tags,
+        coverImage: originalBlog.coverImage,
+        authorId: originalBlog.authorId, // Keep original string ID for display/consistency if needed
+        authorName: originalBlog.authorName,
+        authorEmail: originalBlog.authorEmail,
+        authorPhotoURL: originalBlog.authorPhotoURL,
+        readTime: originalBlog.readTime,
+
+        isRepost: true,
+        originalAuthor: resolvedOriginalAuthorId,
+        originalPostId: sourceBlogId,
+        repostedBy: userId,
+        repostedAt: new Date(),
+
+        views: 0,
+        likes: [],
+        likescount: 0,
+        commentscount: 0,
+        published: true,
+        publishedAt: new Date()
+    });
+
+    await repost.save();
+    return repost;
+};
+
+export const updateReadTime = async (blogId, durationSeconds) => {
+    try {
+        const blog = await Blog.findById(blogId);
+        if (!blog) return { success: false, message: 'Blog not found' };
+
+        blog.totalReadTime = (blog.totalReadTime || 0) + durationSeconds;
+
+        // Count as a "read" if duration is significant (> 30s or > 50% of estimated read time)
+        const estimatedSeconds = (blog.readTime || 1) * 60;
+        if (durationSeconds > 30 || durationSeconds > (estimatedSeconds * 0.5)) {
+            blog.totalReads = (blog.totalReads || 0) + 1;
+        }
+
+        await blog.save();
+        return { success: true };
+    } catch (error) {
+        console.error('Update Read Time Error:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+>>>>>>> origin/feature/aditi
 export const getUserStats = async (authorId) => {
     const blogs = await findBlogsByAuthor(authorId);
 

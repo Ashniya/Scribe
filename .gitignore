@@ -7,3 +7,11 @@ build/
 **/ScribeServiceAccountKey.json
 **/*ServiceAccountKey*.json
 *.log
+Desktop/
+.idea/
+.vscode/
+coverage/
+tmp/
+.DS_Store
+*.swp
+backend/ScribeServiceAccountKey.json

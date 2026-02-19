@@ -1,14 +1,19 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import LoginPage from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
+import About from './pages/About';
+import Profile from './pages/Profile';
+import Stats from './pages/Stats';
+import Search from './pages/Search';
+import ProfileTest from './pages/ProfileTest';
+import Contact from './pages/Contact';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
-import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
-import About from './pages/About';
 import { ToastProvider } from './components/Toast';
+import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -17,13 +22,12 @@ function App() {
         <Router>
           <AuthProvider>
             <Routes>
-              {/* Public route */}
+              {/* Public routes */}
               <Route path="/" element={<Landing />} />
-
-              {/* About page */}
               <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
 
-              {/* Login route - only when NOT logged in */}
+              {/* Login/Auth routes - only when NOT logged in */}
               <Route
                 path="/login"
                 element={
@@ -32,12 +36,62 @@ function App() {
                   </PublicOnlyRoute>
                 }
               />
-
-              {/* Forgot Password */}
               <Route path="/forgot-password" element={<ForgotPassword />} />
 
-              {/* Protected dashboard */}
-              <Route path="/dashboard" element={<Dashboard />} />
+              {/* Protected Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/profile/:username"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/stats"
+                element={
+                  <ProtectedRoute>
+                    <Stats />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute>
+                    <Search />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/profile-test"
+                element={
+                  <ProtectedRoute>
+                    <ProfileTest />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* 404 */}
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,7 +1,13 @@
 
+<<<<<<< HEAD
 import React, { createContext, useState, useEffect } from 'react';
+=======
+import React, { createContext, useState, useEffect, useContext } from 'react';
+>>>>>>> origin/feature/aditi
 
 export const ThemeContext = createContext();
+
+export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
     const [isDark, setIsDark] = useState(() => {

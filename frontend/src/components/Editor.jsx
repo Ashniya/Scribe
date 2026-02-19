@@ -1,5 +1,6 @@
 import { auth } from '../config/firebase.js';
 import React, { useState, useRef, useEffect } from 'react';
+<<<<<<< HEAD
 import {
     ArrowLeft, Bold, Italic, List, ListOrdered, Link as LinkIcon, Image as ImageIcon, Plus,
     Save, Type, Quote, X, Underline, AlignLeft, AlignCenter, AlignRight,
@@ -38,10 +39,25 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
             if (editBlog?.content) {
                 contentRef.current.innerHTML = editBlog.content;
             }
+=======
+import { ArrowLeft, Bold, Italic, List, Link as LinkIcon, Image as ImageIcon, Save, Type, Quote, X } from 'lucide-react';
+
+export default function Editor({ onClose, isDark }) {
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
+    const [coverImageUrl, setCoverImageUrl] = useState('');
+    const [publishing, setPublishing] = useState(false);
+    const contentRef = useRef(null);
+
+    // Focus editor on mount
+    useEffect(() => {
+        if (contentRef.current) {
+>>>>>>> origin/feature/aditi
             contentRef.current.focus();
         }
     }, []);
 
+<<<<<<< HEAD
     useEffect(() => {
         const update = () => {
             const selection = window.getSelection();
@@ -198,6 +214,10 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
     // Core formatting function using execCommand for WYSIWYG support
     const execCmd = (command, value = null) => {
         contentRef.current?.focus();
+=======
+    // Core formatting function using execCommand for WYSIWYG support
+    const execCmd = (command, value = null) => {
+>>>>>>> origin/feature/aditi
         document.execCommand(command, false, value);
         if (contentRef.current) {
             setContent(contentRef.current.innerHTML);
@@ -205,6 +225,7 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
         }
     };
 
+<<<<<<< HEAD
     const applyBlockStyle = (el, tagName) => {
         if (!el) return;
         if (tagName === 'h1') {
@@ -447,6 +468,23 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
             setContent(contentRef.current.innerHTML);
             contentRef.current.focus();
         }
+=======
+    const handleFormat = (e, command, value = null) => {
+        e.preventDefault(); // Prevent loss of focus
+        execCmd(command, value);
+    };
+
+    const handleLink = (e) => {
+        e.preventDefault();
+        const url = prompt('Enter URL:');
+        if (url) execCmd('createLink', url);
+    };
+
+    const handleImage = (e) => {
+        e.preventDefault();
+        const url = prompt('Enter image URL:');
+        if (url) execCmd('insertImage', url);
+>>>>>>> origin/feature/aditi
     };
 
     // Handle keyboard shortcuts
@@ -459,6 +497,7 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
             e.preventDefault();
             execCmd('italic');
         }
+<<<<<<< HEAD
         if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
             e.preventDefault();
             execCmd('underline');
@@ -476,6 +515,8 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
             e.preventDefault();
             execCmd('outdent');
         }
+=======
+>>>>>>> origin/feature/aditi
     };
 
     const handlePublish = async () => {
@@ -499,6 +540,7 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
                 return;
             }
 
+<<<<<<< HEAD
             if (editBlog) {
                 // Edit mode: update existing blog
                 await apiCall(`/api/blogs/${editBlog._id}`, {
@@ -531,6 +573,36 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
         } catch (error) {
             console.error('Publish error:', error);
             alert(`Error: ${error.message || "Failed to save article"}`);
+=======
+            const token = await user.getIdToken(true);
+            const response = await fetch('http://localhost:5000/api/blogs', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title,
+                    content, // Sending HTML content
+                    category: 'General',
+                    tags: [],
+                    coverImage: coverImageUrl.trim() || null,
+                    published: true
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to publish');
+            }
+
+            alert("Article published successfully!");
+            onClose(); // Close editor
+        } catch (error) {
+            console.error('Publish error:', error);
+            alert(`Error: ${error.message || "Failed to publish article"}`);
+>>>>>>> origin/feature/aditi
         } finally {
             setPublishing(false);
         }
@@ -538,6 +610,7 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
 
     return (
         <div className={`fixed inset-0 z-50 flex flex-col ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-gray-900'}`}>
+<<<<<<< HEAD
             {/* Hidden file inputs */}
             <input
                 type="file"
@@ -554,6 +627,8 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
                 style={{ display: 'none' }}
             />
 
+=======
+>>>>>>> origin/feature/aditi
             {/* Top Navigation Bar */}
             <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-slate-800' : 'border-gray-200'}`}>
                 <div className="flex items-center gap-4">
@@ -564,7 +639,11 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
                         <ArrowLeft className="w-6 h-6" />
                     </button>
                     <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+<<<<<<< HEAD
                         {editBlog ? 'Editing' : 'Drafting'}
+=======
+                        Drafting
+>>>>>>> origin/feature/aditi
                     </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -574,7 +653,11 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
                         className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-white transition
                             ${publishing ? 'bg-green-600 opacity-50 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg'}`}
                     >
+<<<<<<< HEAD
                         {publishing ? (editBlog ? 'Updating...' : 'Publishing...') : (editBlog ? 'Update' : 'Publish')}
+=======
+                        {publishing ? 'Publishing...' : 'Publish'}
+>>>>>>> origin/feature/aditi
                     </button>
                     <button onClick={onClose} className="hidden md:block">
                         <X className={`w-6 h-6 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'}`} />
@@ -589,7 +672,11 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
                     <div className="mb-8 group">
                         {coverImageUrl ? (
                             <div className="relative mb-4 rounded-xl overflow-hidden shadow-sm">
+<<<<<<< HEAD
                                 <img src={coverImageUrl} alt="Cover" className="w-full max-h-[240px] object-cover" />
+=======
+                                <img src={coverImageUrl} alt="Cover" className="w-full max-h-[400px] object-cover" />
+>>>>>>> origin/feature/aditi
                                 <button
                                     onClick={() => setCoverImageUrl('')}
                                     className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition"
@@ -598,6 +685,7 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
                                 </button>
                             </div>
                         ) : (
+<<<<<<< HEAD
                             <button
                                 onClick={() => coverFileInputRef.current?.click()}
                                 className={`w-full p-8 rounded-xl border-2 border-dashed transition text-center
@@ -611,6 +699,16 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
                                     Click to upload cover image from your computer
                                 </p>
                             </button>
+=======
+                            <input
+                                type="text"
+                                placeholder="Add a cover image URL (optional)"
+                                value={coverImageUrl}
+                                onChange={(e) => setCoverImageUrl(e.target.value)}
+                                className={`w-full p-3 rounded-lg text-sm mb-4 outline-none transition
+                                    ${isDark ? 'bg-slate-800 text-white placeholder-slate-500 focus:bg-slate-700' : 'bg-gray-50 text-gray-900 placeholder-gray-400 focus:bg-white border border-transparent focus:border-gray-200'}`}
+                            />
+>>>>>>> origin/feature/aditi
                         )}
                     </div>
 
@@ -632,6 +730,7 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
                     <div className={`sticky top-0 z-40 mb-6 py-2 flex items-center gap-1 border-b backdrop-blur-sm transition-colors
                         ${isDark ? 'border-slate-800 bg-slate-900/80' : 'border-gray-100 bg-white/80'}`}>
 
+<<<<<<< HEAD
                         <ToolbarButton active={formatState.bold} onClick={(e) => handleFormat(e, 'bold')} icon={Bold} label="Bold (Ctrl+B)" isDark={isDark} />
                         <ToolbarButton active={formatState.italic} onClick={(e) => handleFormat(e, 'italic')} icon={Italic} label="Italic (Ctrl+I)" isDark={isDark} />
                         <ToolbarButton active={formatState.underline} onClick={(e) => handleFormat(e, 'underline')} icon={Underline} label="Underline (Ctrl+U)" isDark={isDark} />
@@ -788,18 +887,33 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
                         </>
                     )}
 
+=======
+                        <ToolbarButton onClick={(e) => handleFormat(e, 'bold')} icon={Bold} label="Bold" isDark={isDark} />
+                        <ToolbarButton onClick={(e) => handleFormat(e, 'italic')} icon={Italic} label="Italic" isDark={isDark} />
+                        <div className={`w-px h-5 mx-2 ${isDark ? 'bg-slate-700' : 'bg-gray-200'}`} />
+                        <ToolbarButton onClick={(e) => handleFormat(e, 'insertUnorderedList')} icon={List} label="List" isDark={isDark} />
+                        <ToolbarButton onClick={handleLink} icon={LinkIcon} label="Link" isDark={isDark} />
+                        <ToolbarButton onClick={handleImage} icon={ImageIcon} label="Image" isDark={isDark} />
+                    </div>
+
+>>>>>>> origin/feature/aditi
                     {/* WYSIWYG Content Area */}
                     <div
                         ref={contentRef}
                         contentEditable
                         onInput={(e) => setContent(e.currentTarget.innerHTML)}
                         onKeyDown={handleKeyDown}
+<<<<<<< HEAD
                         className={`editor-content min-h-[500px] text-xl leading-relaxed outline-none max-w-none
+=======
+                        className={`min-h-[500px] text-xl leading-relaxed outline-none prose max-w-none
+>>>>>>> origin/feature/aditi
                             ${isDark ? 'prose-invert text-gray-300' : 'text-gray-800'}
                             empty:before:content-[attr(placeholder)] empty:before:text-gray-400 cursor-text`}
                         placeholder="Tell your story..."
                         style={{ whiteSpace: 'pre-wrap' }}
                     />
+<<<<<<< HEAD
 
                     {/* Local styles for headings/lists (Tailwind preflight resets them) */}
                     <style>{`
@@ -814,6 +928,8 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
                       .editor-content b, .editor-content strong { font-weight: bold !important; }
                       .editor-content i, .editor-content em { font-style: italic !important; }
                     `}</style>
+=======
+>>>>>>> origin/feature/aditi
                 </div>
             </div>
         </div>
@@ -821,6 +937,7 @@ export default function Editor({ onClose, isDark, editBlog = null }) {
 }
 
 // Helper Component for Toolbar Buttons
+<<<<<<< HEAD
 function ToolbarButton({ onClick, icon: Icon, label, isDark, showDropdown, active }) {
     return (
         <button
@@ -831,12 +948,21 @@ function ToolbarButton({ onClick, icon: Icon, label, isDark, showDropdown, activ
                     : isDark ? 'text-gray-400 hover:text-white hover:bg-slate-800' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }
             `}
+=======
+function ToolbarButton({ onClick, icon: Icon, label, isDark }) {
+    return (
+        <button
+            onMouseDown={onClick} // Use onMouseDown to prevent focus loss from editor
+            className={`p-2 rounded-lg transition-colors
+                ${isDark ? 'text-gray-400 hover:text-white hover:bg-slate-800' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
+>>>>>>> origin/feature/aditi
             title={label}
         >
             <Icon className="w-5 h-5" strokeWidth={2} />
         </button>
     );
 }
+<<<<<<< HEAD
 
 // Media Menu Item Component
 function MediaMenuItem({ icon: Icon, label, onClick, isDark }) {
@@ -854,3 +980,5 @@ function MediaMenuItem({ icon: Icon, label, onClick, isDark }) {
         </button>
     );
 }
+=======
+>>>>>>> origin/feature/aditi

@@ -77,7 +77,11 @@
 //             >
 //               {/* Wire/Cord */}
 //               <div className="w-0.5 h-10 bg-gray-800 dark:bg-gray-400 transition-colors duration-300"></div>
+<<<<<<< HEAD
               
+=======
+
+>>>>>>> origin/feature/aditi
 //               {/* Lamp Container with Swing Animation */}
 //               <div className={`relative ${isSwinging ? 'animate-lamp-swing' : ''}`}>
 //                 {/* Light Rays (visible only when ON) */}
@@ -88,7 +92,11 @@
 //                       className="absolute left-1/2 top-0 w-1 h-full bg-gradient-to-b from-yellow-200/80 via-yellow-100/40 to-transparent transform -translate-x-1/2 animate-pulse"
 //                       style={{ animationDuration: '2s' }}
 //                     ></div>
+<<<<<<< HEAD
                     
+=======
+
+>>>>>>> origin/feature/aditi
 //                     {/* Left rays */}
 //                     <div 
 //                       className="absolute left-1/2 top-0 w-0.5 h-full bg-gradient-to-b from-yellow-200/60 via-yellow-100/30 to-transparent transform origin-top -translate-x-1/2 -rotate-20"
@@ -98,7 +106,11 @@
 //                       className="absolute left-1/2 top-0 w-0.5 h-full bg-gradient-to-b from-yellow-200/40 via-yellow-100/20 to-transparent transform origin-top -translate-x-1/2 -rotate-35 animate-pulse"
 //                       style={{ animationDuration: '2.5s' }}
 //                     ></div>
+<<<<<<< HEAD
                     
+=======
+
+>>>>>>> origin/feature/aditi
 //                     {/* Right rays */}
 //                     <div 
 //                       className="absolute left-1/2 top-0 w-0.5 h-full bg-gradient-to-b from-yellow-200/60 via-yellow-100/30 to-transparent transform origin-top -translate-x-1/2 rotate-20 animate-pulse"
@@ -110,12 +122,20 @@
 //                     ></div>
 //                   </div>
 //                 )}
+<<<<<<< HEAD
                 
+=======
+
+>>>>>>> origin/feature/aditi
 //                 {/* Lamp Shade */}
 //                 <svg width="60" height="50" viewBox="0 0 60 50" className="relative drop-shadow-lg">
 //                   {/* Top connector */}
 //                   <rect x="27" y="0" width="6" height="4" fill={isDark ? "#374151" : "#1f2937"} rx="1"/>
+<<<<<<< HEAD
                   
+=======
+
+>>>>>>> origin/feature/aditi
 //                   {/* Main dome shade - flat industrial style */}
 //                   <path
 //                     d="M 15 6 L 45 6 L 50 18 Q 50 20, 48 20 L 12 20 Q 10 20, 10 18 Z"
@@ -124,7 +144,11 @@
 //                     strokeWidth="1"
 //                     className="transition-all duration-500"
 //                   />
+<<<<<<< HEAD
                   
+=======
+
+>>>>>>> origin/feature/aditi
 //                   {/* Bottom rim highlight */}
 //                   <ellipse 
 //                     cx="30" 
@@ -134,7 +158,11 @@
 //                     fill={isDark ? "#1f2937" : "#111827"}
 //                     opacity="0.8"
 //                   />
+<<<<<<< HEAD
                   
+=======
+
+>>>>>>> origin/feature/aditi
 //                   {/* Light bulb - visible when ON */}
 //                   {!isDark && (
 //                     <>
@@ -163,7 +191,11 @@
 //                       />
 //                     </>
 //                   )}
+<<<<<<< HEAD
                   
+=======
+
+>>>>>>> origin/feature/aditi
 //                   <defs>
 //                     <radialGradient id="bulbGradient" cx="50%" cy="50%" r="50%">
 //                       <stop offset="0%" stopColor="#fef3c7" />
@@ -172,7 +204,11 @@
 //                   </defs>
 //                 </svg>
 //               </div>
+<<<<<<< HEAD
               
+=======
+
+>>>>>>> origin/feature/aditi
 //               {/* Tooltip */}
 //               <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
 //                 {isDark ? 'Turn on' : 'Turn off'}
@@ -197,7 +233,11 @@
 //                     <div className="absolute left-1/2 top-0 w-0.5 h-full bg-gradient-to-b from-yellow-200/60 via-yellow-100/30 to-transparent transform origin-top -translate-x-1/2 rotate-25"></div>
 //                   </div>
 //                 )}
+<<<<<<< HEAD
                 
+=======
+
+>>>>>>> origin/feature/aditi
 //                 <svg width="50" height="40" viewBox="0 0 50 40" className="relative">
 //                   <rect x="22" y="0" width="6" height="3" fill={isDark ? "#374151" : "#1f2937"} rx="1"/>
 //                   <path
@@ -207,14 +247,22 @@
 //                     strokeWidth="1"
 //                   />
 //                   <ellipse cx="25" cy="17" rx="16" ry="1.5" fill={isDark ? "#1f2937" : "#111827"} opacity="0.8"/>
+<<<<<<< HEAD
                   
+=======
+
+>>>>>>> origin/feature/aditi
 //                   {!isDark && (
 //                     <>
 //                       <circle cx="25" cy="22" r="5" fill="#fef3c7" opacity="0.9"/>
 //                       <circle cx="25" cy="22" r="3" fill="url(#bulbGradientMobile)"/>
 //                     </>
 //                   )}
+<<<<<<< HEAD
                   
+=======
+
+>>>>>>> origin/feature/aditi
 //                   <defs>
 //                     <radialGradient id="bulbGradientMobile" cx="50%" cy="50%" r="50%">
 //                       <stop offset="0%" stopColor="#fef3c7" />
@@ -224,7 +272,11 @@
 //                 </svg>
 //               </div>
 //             </button>
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> origin/feature/aditi
 //             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded-lg text-scribe-green dark:text-scribe-mint">
 //               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
 //             </button>
@@ -292,7 +344,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, User, LogOut } from 'lucide-react';
 import { ThemeContext } from '../context/ThemeContext';
 
+<<<<<<< HEAD
 const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true }) => {
+=======
+const Navbar = ({ isAuthenticated = false, userName = 'User', userProfilePic = null, showNavbar = true }) => {
+>>>>>>> origin/feature/aditi
   const { isDark, setIsDark } = useContext(ThemeContext);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -336,7 +392,15 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
             {isAuthenticated ? (
               <>
                 <div className="flex items-center space-x-2 px-5 py-2.5 rounded-full bg-white/60 dark:bg-slate-800 border border-scribe-sage/30 dark:border-scribe-mint/30">
+<<<<<<< HEAD
                   <User size={20} className="text-scribe-green dark:text-scribe-mint" />
+=======
+                  {userProfilePic ? (
+                    <img src={userProfilePic} alt={userName} className="w-5 h-5 rounded-full object-cover" />
+                  ) : (
+                    <User size={20} className="text-scribe-green dark:text-scribe-mint" />
+                  )}
+>>>>>>> origin/feature/aditi
                   <span className="font-medium text-lg text-scribe-green dark:text-scribe-mint">{userName}</span>
                 </div>
                 <button onClick={() => navigate('/')} className="flex items-center space-x-2 px-5 py-2.5 rounded-full bg-scribe-green dark:bg-scribe-mint text-scribe-cream dark:text-scribe-green hover:bg-scribe-sage dark:hover:bg-scribe-sage transition-all duration-300 font-medium text-lg">
@@ -356,20 +420,29 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
             )}
 
             {/* Flat Dome Lamp Toggle with Light Rays */}
+<<<<<<< HEAD
             <button 
+=======
+            <button
+>>>>>>> origin/feature/aditi
               onClick={handleThemeToggle}
               className="relative w-20 h-28 flex flex-col items-center group"
               aria-label="Toggle theme"
             >
               {/* Wire/Cord */}
               <div className="w-0.5 h-10 bg-gray-800 dark:bg-gray-400 transition-colors duration-300"></div>
+<<<<<<< HEAD
               
+=======
+
+>>>>>>> origin/feature/aditi
               {/* Lamp Container with Swing Animation */}
               <div className={`relative ${isSwinging ? 'animate-lamp-swing' : ''}`}>
                 {/* Light Rays (visible only when ON) */}
                 {!isDark && (
                   <div className="absolute top-12 left-1/2 transform -translate-x-1/2 w-32 h-40 overflow-visible pointer-events-none">
                     {/* Center ray */}
+<<<<<<< HEAD
                     <div 
                       className="absolute left-1/2 top-0 w-1 h-full bg-gradient-to-b from-yellow-200/80 via-yellow-100/40 to-transparent transform -translate-x-1/2 animate-pulse"
                       style={{ animationDuration: '2s' }}
@@ -391,17 +464,49 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
                       style={{ animationDuration: '2.3s' }}
                     ></div>
                     <div 
+=======
+                    <div
+                      className="absolute left-1/2 top-0 w-1 h-full bg-gradient-to-b from-yellow-200/80 via-yellow-100/40 to-transparent transform -translate-x-1/2 animate-pulse"
+                      style={{ animationDuration: '2s' }}
+                    ></div>
+
+                    {/* Left rays */}
+                    <div
+                      className="absolute left-1/2 top-0 w-0.5 h-full bg-gradient-to-b from-yellow-200/60 via-yellow-100/30 to-transparent transform origin-top -translate-x-1/2 -rotate-20"
+                      style={{ animationDuration: '2.2s' }}
+                    ></div>
+                    <div
+                      className="absolute left-1/2 top-0 w-0.5 h-full bg-gradient-to-b from-yellow-200/40 via-yellow-100/20 to-transparent transform origin-top -translate-x-1/2 -rotate-35 animate-pulse"
+                      style={{ animationDuration: '2.5s' }}
+                    ></div>
+
+                    {/* Right rays */}
+                    <div
+                      className="absolute left-1/2 top-0 w-0.5 h-full bg-gradient-to-b from-yellow-200/60 via-yellow-100/30 to-transparent transform origin-top -translate-x-1/2 rotate-20 animate-pulse"
+                      style={{ animationDuration: '2.3s' }}
+                    ></div>
+                    <div
+>>>>>>> origin/feature/aditi
                       className="absolute left-1/2 top-0 w-0.5 h-full bg-gradient-to-b from-yellow-200/40 via-yellow-100/20 to-transparent transform origin-top -translate-x-1/2 rotate-35 animate-pulse"
                       style={{ animationDuration: '2.6s' }}
                     ></div>
                   </div>
                 )}
+<<<<<<< HEAD
                 
                 {/* Lamp Shade */}
                 <svg width="60" height="50" viewBox="0 0 60 50" className="relative drop-shadow-lg">
                   {/* Top connector */}
                   <rect x="27" y="0" width="6" height="4" fill={isDark ? "#374151" : "#1f2937"} rx="1"/>
                   
+=======
+
+                {/* Lamp Shade */}
+                <svg width="60" height="50" viewBox="0 0 60 50" className="relative drop-shadow-lg">
+                  {/* Top connector */}
+                  <rect x="27" y="0" width="6" height="4" fill={isDark ? "#374151" : "#1f2937"} rx="1" />
+
+>>>>>>> origin/feature/aditi
                   {/* Main dome shade - flat industrial style */}
                   <path
                     d="M 15 6 L 45 6 L 50 18 Q 50 20, 48 20 L 12 20 Q 10 20, 10 18 Z"
@@ -410,6 +515,7 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
                     strokeWidth="1"
                     className="transition-all duration-500"
                   />
+<<<<<<< HEAD
                   
                   {/* Bottom rim highlight */}
                   <ellipse 
@@ -421,19 +527,41 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
                     opacity="0.8"
                   />
                   
+=======
+
+                  {/* Bottom rim highlight */}
+                  <ellipse
+                    cx="30"
+                    cy="20"
+                    rx="19"
+                    ry="2"
+                    fill={isDark ? "#1f2937" : "#111827"}
+                    opacity="0.8"
+                  />
+
+>>>>>>> origin/feature/aditi
                   {/* Light bulb - visible when ON */}
                   {!isDark && (
                     <>
                       {/* Bulb glow */}
+<<<<<<< HEAD
                       <circle 
                         cx="30" 
                         cy="26" 
                         r="6" 
                         fill="#fef3c7" 
+=======
+                      <circle
+                        cx="30"
+                        cy="26"
+                        r="6"
+                        fill="#fef3c7"
+>>>>>>> origin/feature/aditi
                         opacity="0.9"
                         className="animate-pulse"
                       />
                       {/* Bulb */}
+<<<<<<< HEAD
                       <circle 
                         cx="30" 
                         cy="26" 
@@ -445,11 +573,28 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
                         cx="29" 
                         cy="25" 
                         r="1.5" 
+=======
+                      <circle
+                        cx="30"
+                        cy="26"
+                        r="4"
+                        fill="url(#bulbGradient)"
+                      />
+                      {/* Bulb highlight */}
+                      <circle
+                        cx="29"
+                        cy="25"
+                        r="1.5"
+>>>>>>> origin/feature/aditi
                         fill="#fffbeb"
                       />
                     </>
                   )}
+<<<<<<< HEAD
                   
+=======
+
+>>>>>>> origin/feature/aditi
                   <defs>
                     <radialGradient id="bulbGradient" cx="50%" cy="50%" r="50%">
                       <stop offset="0%" stopColor="#fef3c7" />
@@ -458,7 +603,11 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
                   </defs>
                 </svg>
               </div>
+<<<<<<< HEAD
               
+=======
+
+>>>>>>> origin/feature/aditi
               {/* Tooltip */}
               <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                 {isDark ? 'Turn on' : 'Turn off'}
@@ -469,7 +618,11 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
           {/* Mobile Menu Button */}
           <div className="flex items-center space-x-4 md:hidden ml-auto">
             {/* Mobile Lamp Toggle */}
+<<<<<<< HEAD
             <button 
+=======
+            <button
+>>>>>>> origin/feature/aditi
               onClick={handleThemeToggle}
               className="relative w-16 h-24 flex flex-col items-center"
               aria-label="Toggle theme"
@@ -483,15 +636,22 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
                     <div className="absolute left-1/2 top-0 w-0.5 h-full bg-gradient-to-b from-yellow-200/60 via-yellow-100/30 to-transparent transform origin-top -translate-x-1/2 rotate-25"></div>
                   </div>
                 )}
+<<<<<<< HEAD
                 
                 <svg width="50" height="40" viewBox="0 0 50 40" className="relative">
                   <rect x="22" y="0" width="6" height="3" fill={isDark ? "#374151" : "#1f2937"} rx="1"/>
+=======
+
+                <svg width="50" height="40" viewBox="0 0 50 40" className="relative">
+                  <rect x="22" y="0" width="6" height="3" fill={isDark ? "#374151" : "#1f2937"} rx="1" />
+>>>>>>> origin/feature/aditi
                   <path
                     d="M 12 5 L 38 5 L 42 15 Q 42 17, 40 17 L 10 17 Q 8 17, 8 15 Z"
                     fill={isDark ? "#374151" : "#1f2937"}
                     stroke={isDark ? "#1f2937" : "#111827"}
                     strokeWidth="1"
                   />
+<<<<<<< HEAD
                   <ellipse cx="25" cy="17" rx="16" ry="1.5" fill={isDark ? "#1f2937" : "#111827"} opacity="0.8"/>
                   
                   {!isDark && (
@@ -501,6 +661,17 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
                     </>
                   )}
                   
+=======
+                  <ellipse cx="25" cy="17" rx="16" ry="1.5" fill={isDark ? "#1f2937" : "#111827"} opacity="0.8" />
+
+                  {!isDark && (
+                    <>
+                      <circle cx="25" cy="22" r="5" fill="#fef3c7" opacity="0.9" />
+                      <circle cx="25" cy="22" r="3" fill="url(#bulbGradientMobile)" />
+                    </>
+                  )}
+
+>>>>>>> origin/feature/aditi
                   <defs>
                     <radialGradient id="bulbGradientMobile" cx="50%" cy="50%" r="50%">
                       <stop offset="0%" stopColor="#fef3c7" />
@@ -510,7 +681,11 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
                 </svg>
               </div>
             </button>
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> origin/feature/aditi
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded-lg text-scribe-green dark:text-scribe-mint">
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -530,7 +705,15 @@ const Navbar = ({ isAuthenticated = false, userName = 'User', showNavbar = true 
           {isAuthenticated ? (
             <>
               <div className="flex items-center space-x-2 px-4 py-2.5 bg-white/60 dark:bg-slate-800 rounded-lg border border-scribe-sage/30 dark:border-scribe-mint/30">
+<<<<<<< HEAD
                 <User size={18} className="text-scribe-green dark:text-scribe-mint" />
+=======
+                {userProfilePic ? (
+                  <img src={userProfilePic} alt={userName} className="w-[18px] h-[18px] rounded-full object-cover" />
+                ) : (
+                  <User size={18} className="text-scribe-green dark:text-scribe-mint" />
+                )}
+>>>>>>> origin/feature/aditi
                 <span className="text-scribe-green dark:text-scribe-mint">{userName}</span>
               </div>
               <button onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }} className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-scribe-green dark:bg-scribe-mint text-scribe-cream dark:text-scribe-green rounded-lg">
