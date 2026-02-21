@@ -1,9 +1,5 @@
-
-<<<<<<< HEAD
-import React, { createContext, useState, useEffect } from 'react';
-=======
 import React, { createContext, useState, useEffect, useContext } from 'react';
->>>>>>> origin/feature/aditi
+
 
 export const ThemeContext = createContext();
 

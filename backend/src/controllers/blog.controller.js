@@ -7,14 +7,10 @@ import {
     deleteBlog,
     incrementViews,
     toggleLike,
-<<<<<<< HEAD
-    getUserStats
-=======
     toggleSave,
     getUserStats,
     repostBlog,
     updateReadTime
->>>>>>> origin/feature/aditi
 } from '../services/blog.service.js';
 
 // @desc    Create new blog post
@@ -43,7 +39,6 @@ export const createBlogPost = async (req, res, next) => {
         });
     } catch (error) {
         console.error("SAVE ERROR 👉", error);
-<<<<<<< HEAD
 
         // Mongoose validation errors (missing title/content, etc.)
         if (error?.name === 'ValidationError') {
@@ -61,9 +56,6 @@ export const createBlogPost = async (req, res, next) => {
             message: 'Failed to save blog',
             error: process.env.NODE_ENV !== 'production' ? message : undefined
         });
-=======
-        res.status(500).json({ message: "Failed to save blog" });
->>>>>>> origin/feature/aditi
     }
 };
 
@@ -72,12 +64,8 @@ export const createBlogPost = async (req, res, next) => {
 // @access  Public
 export const getAllBlogs = async (req, res, next) => {
     try {
-<<<<<<< HEAD
-        const blogs = await findAllPublishedBlogs(50);
-=======
         const { q } = req.query;
         const blogs = await findAllPublishedBlogs(50, q);
->>>>>>> origin/feature/aditi
 
         res.status(200).json({
             success: true,
@@ -224,8 +212,6 @@ export const likeBlog = async (req, res, next) => {
     }
 };
 
-<<<<<<< HEAD
-=======
 // @desc    Save/Unsave blog
 // @route   POST /api/blogs/:id/save
 // @access  Private
@@ -251,7 +237,6 @@ export const saveBlogPost = async (req, res, next) => {
     }
 };
 
->>>>>>> origin/feature/aditi
 // @desc    Get user stats
 // @route   GET /api/blogs/stats/user
 // @access  Private
@@ -267,8 +252,6 @@ export const getStatsForUser = async (req, res, next) => {
         next(error);
     }
 };
-<<<<<<< HEAD
-=======
 
 // @desc    Repost a blog
 // @route   POST /api/blogs/:id/repost
@@ -299,4 +282,3 @@ export const trackReadTimeController = async (req, res, next) => {
         res.status(200).json({ success: true });
     }
 };
->>>>>>> origin/feature/aditi

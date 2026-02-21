@@ -51,10 +51,6 @@ export const createBlog = async (blogData) => {
     };
 };
 
-<<<<<<< HEAD
-export const findAllPublishedBlogs = async (limit = 50) => {
-    const blogs = await Blog.find({ published: true })
-=======
 export const findAllPublishedBlogs = async (limit = 50, query = null) => {
     let filter = { published: true };
 
@@ -68,7 +64,6 @@ export const findAllPublishedBlogs = async (limit = 50, query = null) => {
     }
 
     const blogs = await Blog.find(filter)
->>>>>>> origin/feature/aditi
         .sort({ publishedAt: -1 })
         .limit(limit)
         .lean();
@@ -142,8 +137,6 @@ export const toggleLike = async (blogId, userId) => {
     };
 };
 
-<<<<<<< HEAD
-=======
 export const toggleSave = async (blogId, userId) => {
     const blog = await Blog.findById(blogId);
 
@@ -277,7 +270,6 @@ export const updateReadTime = async (blogId, durationSeconds) => {
     }
 };
 
->>>>>>> origin/feature/aditi
 export const getUserStats = async (authorId) => {
     const blogs = await findBlogsByAuthor(authorId);
 

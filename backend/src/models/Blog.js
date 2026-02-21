@@ -68,8 +68,6 @@ const blogSchema = new mongoose.Schema({
     publishedAt: {
         type: Date,
         default: Date.now
-<<<<<<< HEAD
-=======
     },
     totalReadTime: {
         type: Number,
@@ -107,7 +105,6 @@ const blogSchema = new mongoose.Schema({
     saveCount: {
         type: Number,
         default: 0
->>>>>>> origin/feature/aditi
     }
 }, {
     timestamps: true

@@ -1,42 +1,25 @@
-<<<<<<< HEAD
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
-import './config/firebase.js'; // Initialize Firebase (for auth only)
+import './config/firebase.js'; // Initialize Firebase (for auth only) - Keeping HEAD's init
 import authRoutes from './routes/auth.routes.js';
 import blogRoutes from './routes/blog.routes.js';
 import testRoutes from './routes/test.routes.js';
 import commentRoutes from './routes/comment.routes.js';
+import profileRoutes from './routes/profile.routes.js';
+import statsRoutes from './routes/stats.routes.js';
+import userRoutes from './routes/user.routes.js';
 import errorHandler from './middleware/error.middleware.js';
 
 // Load env vars
 dotenv.config();
 
 // Connect to MongoDB
-=======
-// backend/src/server.js
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.backend' });
-
-import express from 'express';
-import cors from 'cors';
-import connectDB from './config/db.js';
-import './config/firebase-admin.js';
-import authRoutes from './routes/auth.routes.js';
-import blogRoutes from './routes/blog.routes.js';
-import profileRoutes from './routes/profile.routes.js';
-import statsRoutes from './routes/stats.routes.js';
-import userRoutes from './routes/user.routes.js';
-import commentRoutes from './routes/comment.routes.js';
-import errorHandler from './middleware/error.middleware.js';
-
->>>>>>> origin/feature/aditi
 connectDB();
 
 const app = express();
 
-<<<<<<< HEAD
 // Enable CORS — MUST be before body parsers and routes
 // origin: true mirrors the request's own origin back, which is safe for local dev
 // and is required when credentials: true is used (cannot use wildcard '*')
@@ -55,46 +38,15 @@ app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
 // Routes
 app.get('/', (req, res) => {
-  res.json({ message: 'Scribe API is running - Firebase Auth + MongoDB' });
-=======
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-      callback(null, true);
-    } else if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
-
-app.get('/', (req, res) => {
-  res.json({ message: 'Scribe API is running 🚀' });
->>>>>>> origin/feature/aditi
+  res.json({ message: 'Scribe API is running 🚀 - Firebase Auth + MongoDB' });
 });
 
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-<<<<<<< HEAD
     auth: 'Firebase',
-    database: 'MongoDB'
-  });
-});
-
-app.use('/api/test', testRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/blogs', blogRoutes);
-app.use('/api/comments', commentRoutes);
-
-// Error handler middleware (must be last)
-=======
+    database: 'MongoDB',
     services: {
       database: 'connected',
       firebase: 'initialized'
@@ -102,26 +54,24 @@ app.use('/api/comments', commentRoutes);
   });
 });
 
+app.use('/api/test', testRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/api/comments', commentRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/comments', commentRoutes);
 
->>>>>>> origin/feature/aditi
+// Error handler middleware (must be last)
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-<<<<<<< HEAD
+  console.log(`📍 http://localhost:${PORT}`);
   console.log('🔐 Authentication: Firebase');
   console.log('💾 Database: MongoDB');
-=======
-  console.log(`📍 http://localhost:${PORT}`);
->>>>>>> origin/feature/aditi
 });
 
 export default app;

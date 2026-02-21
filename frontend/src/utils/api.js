@@ -119,6 +119,15 @@ export const uploadCoverImage = async (imageFile) => {
   }
 };
 
+export const uploadImage = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve({ success: true, url: reader.result });
+    reader.onerror = (error) => reject({ success: false, message: 'Failed to read file' });
+  });
+};
+
 export const followUser = async (userId) => {
   return apiCall(`/profile/follow/${userId}`, { method: 'POST' });
 };
@@ -216,6 +225,33 @@ export const trackReadTime = async (blogId, duration) => {
   });
 };
 
+// ============= COMMENT APIs =============
+
+export const getComments = async (blogId) => {
+  const response = await fetch(`${API_URL}/comments/${blogId}`);
+  return response.json();
+};
+
+export const addComment = async (blogId, content) => {
+  return apiCall(`/comments/${blogId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+};
+
+export const likeComment = async (commentId) => {
+  return apiCall(`/comments/${commentId}/like`, {
+    method: 'PUT'
+  });
+};
+
+export const deleteComment = async (commentId) => {
+  return apiCall(`/comments/${commentId}`, {
+    method: 'DELETE'
+  });
+};
+
 export default {
   registerUser,
   getCurrentUser,
@@ -224,6 +260,7 @@ export default {
   updateProfile,
   uploadAvatar,
   uploadCoverImage,
+  uploadImage,
   followUser,
   unfollowUser,
   getFollowers,
@@ -242,5 +279,9 @@ export default {
   getMyStats,
   getBlogById,
   repostBlog,
-  trackReadTime
+  trackReadTime,
+  getComments,
+  addComment,
+  likeComment,
+  deleteComment
 };
