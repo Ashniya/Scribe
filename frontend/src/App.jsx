@@ -12,6 +12,7 @@ import Contact from './pages/Contact';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
+import ArticlePage from './pages/ArticlePage';
 
 function App() {
   return (
@@ -44,6 +45,24 @@ function App() {
               }
             />
 
+            {/* Messages Route */}
+            <Route
+              path="/dashboard/messages"
+              element={
+                <ProtectedRoute>
+                  <Dashboard initialSection="messages" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/messages/:conversationId"
+              element={
+                <ProtectedRoute>
+                  <Dashboard initialSection="messages" />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Your own profile */}
             <Route
               path="/profile"
@@ -54,12 +73,22 @@ function App() {
               }
             />
 
-            {/* Another user's profile */}
+            {/* User Profile */}
             <Route
-              path="/profile/:username"
+              path="/@:username"
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Article Page */}
+            <Route
+              path="/@:username/:slug"
+              element={
+                <ProtectedRoute>
+                  <ArticlePage />
                 </ProtectedRoute>
               }
             />

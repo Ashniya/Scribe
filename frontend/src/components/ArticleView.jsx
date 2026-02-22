@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Heart, MessageSquare, Bookmark, Eye, Clock, Send, Trash2, MoreVertical, Edit3, Pin, Settings, BarChart3, EyeOff, MessageCircleOff, Share2, Linkedin, Instagram, Twitter, Facebook, Repeat, Timer } from 'lucide-react';
 import { repostBlog, trackReadTime } from '../utils/api.js';
 import { auth } from '../config/firebase.js';
 
-export default function ArticleView({ article, isDark, onClose, onLike, onSave, isLiked, isSaved, currentUser }) {
+export default function ArticleView({ article, isDark, onClose, onLike, onSave, isLiked, isSaved, currentUser, isPage = false }) {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [loadingComments, setLoadingComments] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showArticleMenu, setShowArticleMenu] = useState(false);
+    const navigate = useNavigate();
 
     // Time Tracking
     useEffect(() => {
@@ -39,6 +41,14 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
         fetchComments();
     }, [article._id]);
 
+    const handleBack = () => {
+        if (isPage) {
+            navigate(-1);
+        } else {
+            onClose();
+        }
+    };
+
     const handleRepost = async () => {
         if (!currentUser) return alert('Please log in to repost.');
         if (confirm('Repost this story to your profile?')) {
@@ -55,7 +65,6 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
     // Post comment
     const handlePostComment = async () => {
         if (!newComment.trim()) return;
-
         const user = auth.currentUser;
         if (!user) {
             alert('Please log in to comment.');
@@ -146,7 +155,7 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
                 <div className="max-w-4xl mx-auto px-4 sm:px-8 py-4">
                     <div className="flex items-center justify-between">
                         <button
-                            onClick={onClose}
+                            onClick={handleBack}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${isDark ? 'hover:bg-slate-800 text-gray-400' : 'hover:bg-gray-100 text-gray-600'}`}
                         >
                             <ArrowLeft className="w-5 h-5" />
@@ -266,35 +275,37 @@ export default function ArticleView({ article, isDark, onClose, onLike, onSave, 
 
                 {/* Author Info */}
                 <div className="flex items-center gap-4 mb-8">
-                    {article.authorPhotoURL ? (
-                        <img
-                            src={article.authorPhotoURL}
-                            alt={article.authorName}
-                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
-                        />
-                    ) : (
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-bold text-lg">
-                            {article.authorName?.[0]?.toUpperCase() || '?'}
+                    <Link to={`/@${article.authorId?.username || article.authorId}`} className="flex items-center gap-4 hover:opacity-80 transition group">
+                        {article.authorId?.photoURL || article.authorPhotoURL ? (
+                            <img
+                                src={article.authorId?.photoURL || article.authorPhotoURL}
+                                alt={article.authorName}
+                                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                            />
+                        ) : (
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-bold text-lg">
+                                {article.authorName?.[0]?.toUpperCase() || '?'}
+                            </div>
+                        )}
+                        <div>
+                            <h3 className={`font-semibold group-hover:underline ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {article.authorName}
+                            </h3>
+                            <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                <span>{new Date(article.publishedAt || article.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                                <span>·</span>
+                                <span className="flex items-center gap-1">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {article.readTime} min read
+                                </span>
+                                <span>·</span>
+                                <span className="flex items-center gap-1">
+                                    <Eye className="w-3.5 h-3.5" />
+                                    {article.views || 0} views
+                                </span>
+                            </div>
                         </div>
-                    )}
-                    <div>
-                        <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {article.authorName}
-                        </h3>
-                        <div className={`flex items-center gap-3 text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                            <span>{new Date(article.publishedAt || article.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-                            <span>·</span>
-                            <span className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5" />
-                                {article.readTime} min read
-                            </span>
-                            <span>·</span>
-                            <span className="flex items-center gap-1">
-                                <Eye className="w-3.5 h-3.5" />
-                                {article.views || 0} views
-                            </span>
-                        </div>
-                    </div>
+                    </Link>
                 </div>
 
                 {/* Cover Image */}

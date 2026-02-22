@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { createSlug } from '../utils/slug';
 import { useAuth } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import DashboardLayout from '../components/DashboardLayout';
@@ -201,8 +202,12 @@ export default function Profile() {
     };
 
     const handleMessage = () => {
-        // Placeholder for message functionality
-        console.log('Open chat with', profile.username);
+        // Navigate to dashboard messages section with target user
+        navigate('/dashboard/messages', {
+            state: {
+                startChatWith: profile
+            }
+        });
     };
 
     if (loading && !profile) {
@@ -519,13 +524,17 @@ export default function Profile() {
                                 <div>
                                     {myPosts.length > 0 ? (
                                         myPosts.map(post => (
-                                            <div key={post._id} className={`p-4 rounded-lg border mb-3 cursor-pointer hover:shadow-md transition ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                                            <Link
+                                                key={post._id}
+                                                to={`/@${profile.username}/${createSlug(post.title, post._id)}`}
+                                                className={`block p-4 rounded-lg border mb-3 cursor-pointer hover:shadow-md transition ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}
+                                            >
                                                 <h3 className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{post.title}</h3>
                                                 <p className={`mb-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{post.excerpt}</p>
                                                 <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                                                     {new Date(post.publishedAt).toLocaleDateString()} · {post.readTime} min read
                                                 </div>
-                                            </div>
+                                            </Link>
                                         ))
                                     ) : (
                                         <div className={`text-center py-8 text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>

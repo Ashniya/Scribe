@@ -1,8 +1,9 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { auth } from '../config/firebase.js';
+import { createSlug } from '../utils/slug';
 import Editor from '../components/Editor';
 import ArticleView from '../components/ArticleView';
 import ProfileSettings from '../components/ProfileSettings';
@@ -12,7 +13,9 @@ import Onboarding from '../components/Onboarding';
 import ProfileContent from '../components/ProfileContent';
 import StatsContent from '../components/StatsContent';
 import SearchContent from '../components/SearchContent';
+import MessagesContent from '../components/MessagesContent';
 import { saveBlog, getBlogById } from '../utils/api';
+import { getOrCreateConversation } from '../utils/messageapi';
 import {
   Home,
   PenTool,
@@ -53,13 +56,29 @@ export default function Dashboard({ initialSection = 'home' }) {
   const [activeTab, setActiveTab] = useState('for-you');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState(location.state?.section || initialSection);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [initialConversationId, setInitialConversationId] = useState(null);
 
   useEffect(() => {
-    if (location.state?.section) {
+    // Handle conversation ID from state (when clicking Message button)
+    if (location.state?.conversationId) {
+      setActiveSection('messages');
+      setInitialConversationId(location.state.conversationId);
+      // Clear state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    } else if (location.state?.section) {
       setActiveSection(location.state.section);
     } else if (initialSection) {
       setActiveSection(initialSection);
+    }
+
+    if (location.state?.startChatWith) {
+      // Handle start chat request from profile page
+      const targetUser = location.state.startChatWith;
+      if (targetUser?._id) {
+        handleMessageUser(targetUser._id);
+        // Clear state to prevent re-triggering on refresh
+        window.history.replaceState({}, document.title);
+      }
     }
   }, [location.state, initialSection]);
 
@@ -256,13 +275,38 @@ export default function Dashboard({ initialSection = 'home' }) {
           id: blog._id,
           title: blog.title,
           author: blog.authorName,
-          image: blog.authorPhotoURL || null,
+          authorUsername: blog.authorId?.username, // New field for routing
+          image: blog.authorId?.photoURL || blog.authorPhotoURL || null,
           time: new Date(blog.publishedAt || blog.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           blog: blog
         }));
       setStaffPicks(topPicks);
     }
   }, [blogs]);
+
+  const handleMessageUser = async (userId) => {
+    if (!currentUser) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
+    try {
+      const res = await getOrCreateConversation(userId);
+      if (res.success) {
+        // Navigate with state instead of URL param
+        navigate('/dashboard', {
+          state: {
+            section: 'messages',
+            conversationId: res.data._id
+          },
+          replace: true  // Replace history so back button works nicely
+        });
+      }
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      alert('Could not start conversation. Please try again.');
+    }
+  };
 
   const renderSectionContent = () => {
     switch (activeSection) {
@@ -275,7 +319,9 @@ export default function Dashboard({ initialSection = 'home' }) {
           </div>
         );
       case 'profile':
-        return <ProfileContent />;
+        return <ProfileContent onMessage={handleMessageUser} />;
+      case 'messages':
+        return <MessagesContent initialConversationId={initialConversationId} />;
       case 'stories':
         return (
           <div className="max-w-4xl mx-auto py-12">
@@ -380,7 +426,10 @@ export default function Dashboard({ initialSection = 'home' }) {
                       title: blog.title,
                       excerpt: blog.excerpt,
                       author: blog.authorName,
-                      authorImage: blog.authorPhotoURL || null,
+                      author: blog.authorName,
+                      authorId: blog.authorId?._id || blog.authorId,
+                      authorUsername: blog.authorId?.username,
+                      authorImage: blog.authorId?.photoURL || blog.authorPhotoURL || null,
                       category: blog.category,
                       image: blog.coverImage,
                       readTime: `${blog.readTime} min read`,
@@ -433,7 +482,10 @@ export default function Dashboard({ initialSection = 'home' }) {
                       title: blog.title,
                       excerpt: blog.excerpt,
                       author: blog.authorName,
-                      authorImage: blog.authorPhotoURL || null,
+                      author: blog.authorName,
+                      authorId: blog.authorId?._id || blog.authorId,
+                      authorUsername: blog.authorId?.username,
+                      authorImage: blog.authorId?.photoURL || blog.authorPhotoURL || null,
                       category: blog.category,
                       image: blog.coverImage,
                       readTime: `${blog.readTime} min read`,
@@ -574,6 +626,7 @@ export default function Dashboard({ initialSection = 'home' }) {
               <NavItem icon={Heart} label="Favorites" active={activeSection === 'favorites'} onClick={() => setActiveSection('favorites')} isDark={isDark} />
               <NavItem icon={Bookmark} label="Collections" active={activeSection === 'collections'} onClick={() => setActiveSection('collections')} isDark={isDark} />
               <NavItem icon={Bell} label="Notifications" active={activeSection === 'notifications'} onClick={() => setActiveSection('notifications')} isDark={isDark} />
+              <NavItem icon={MessageSquare} label="Messages" active={activeSection === 'messages'} onClick={() => navigate('/dashboard/messages')} isDark={isDark} />
               <NavItem icon={Settings} label="Settings" active={activeSection === 'settings'} onClick={() => setActiveSection('settings')} isDark={isDark} />
             </nav>
 
@@ -871,7 +924,9 @@ export default function Dashboard({ initialSection = 'home' }) {
                                 id: blog._id,
                                 title: blog.title,
                                 excerpt: blog.excerpt,
-                                author: blog.authorName,
+                                author: blog.authorName, // Display Name
+                                authorId: blog.authorId?._id || blog.authorId, // User ID
+                                authorUsername: blog.authorId?.username, // Add Username for linking
                                 authorImage: blog.authorPhotoURL || currentUser?.photoURL || null,
                                 authorEmail: blog.authorEmail,
                                 category: blog.category,
@@ -883,7 +938,16 @@ export default function Dashboard({ initialSection = 'home' }) {
                                 views: blog.views,
                                 isLiked: blog.likes?.includes(currentUser?.uid),
                                 isSaved: savedBlogs.includes(blog._id)
-                              }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => setSelectedArticle(blog)} onFollowAuthor={setFollowingAuthor} currentUser={currentUser} onDelete={handleDelete} />
+                              }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => {
+                                // Navigate to article page
+                                if (blog.authorId?.username) {
+                                  navigate(`/@${blog.authorId.username}/${createSlug(blog.title, blog._id)}`);
+                                } else {
+                                  // Fallback if no username (though shouldn't happen with updated backend)
+                                  console.error("Missing username for article navigation", blog);
+                                  setSelectedArticle(blog); // Fallback to modal
+                                }
+                              }} onFollowAuthor={setFollowingAuthor} currentUser={currentUser} onDelete={handleDelete} />
                             ))}
                           </>
                         );
@@ -999,8 +1063,13 @@ function NavItem({ icon: Icon, label, active, badge, onClick, isDark, iconOnly }
 
 function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArticleClick, onFollowAuthor, currentUser, onDelete }) {
   const [showMenu, setShowMenu] = useState(false);
+  const navigate = useNavigate();
 
   const handleArticleClick = () => {
+    if (article.authorUsername) {
+      // Only if we don't have Link handling it (e.g. key accessibility)
+      // But below we remove onClick from container
+    }
     if (onArticleClick) {
       onArticleClick();
     }
@@ -1047,15 +1116,26 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
     });
   };
 
+  const articleSlug = createSlug(article.title, article.id);
+  const articleUrl = article.authorUsername ? `/@${article.authorUsername}/${articleSlug}` : null;
+  const authorUrl = article.authorUsername ? `/@${article.authorUsername}` : null;
+
+  const AuthorComponent = authorUrl ? Link : 'div';
+  const ArticleComponent = articleUrl ? Link : 'div';
+
   return (
     <div
-      className={`group cursor-pointer border-b pb-8 ${isDark ? 'border-slate-700' : 'border-gray-200'} hover:opacity-80 transition`}
+      className={`group border-b pb-8 ${isDark ? 'border-slate-700' : 'border-gray-200'} transition`}
     >
-      <div className="flex justify-between items-center gap-8">
+      <div className="flex justify-between items-start gap-8">
         <div className="flex-1 min-w-0">
           {/* Author + Menu */}
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2" onClick={handleArticleClick}>
+            <AuthorComponent
+              to={authorUrl}
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition"
+              onClick={(e) => !authorUrl && handleArticleClick()}
+            >
               {article.authorImage ? (
                 <img
                   src={article.authorImage}
@@ -1071,24 +1151,30 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
                 {getInitials(article.author)}
               </div>
               <div className="flex items-center gap-1 text-sm">
-                <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'} hover:underline`}>
                   {article.author}
                 </span>
                 <span className={`${isDark ? 'text-gray-500' : 'text-gray-500'}`}>in</span>
                 <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{article.category}</span>
               </div>
-            </div>
+            </AuthorComponent>
           </div>
 
-          {/* Title */}
-          <h2 onClick={handleArticleClick} className={`text-xl md:text-2xl font-bold font-serif mb-1 line-clamp-2 group-hover:underline decoration-glide transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {article.title.replace(/^#+\s*|^\*+|\*+$/g, '')}
-          </h2>
+          {/* Title - Clickable Link */}
+          <ArticleComponent
+            to={articleUrl}
+            className="block cursor-pointer"
+            onClick={(e) => !articleUrl && handleArticleClick()}
+          >
+            <h2 className={`text-xl md:text-2xl font-bold font-serif mb-1 line-clamp-2 group-hover:underline decoration-glide transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {article.title.replace(/^#+\s*|^\*+|\*+$/g, '')}
+            </h2>
 
-          {/* Excerpt */}
-          <p onClick={handleArticleClick} className={`text-base font-sans mb-3 line-clamp-2 hidden sm:block ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            {article.excerpt.replace(/^#+\s*|^\*+|\*+$/g, '')}
-          </p>
+            {/* Excerpt */}
+            <p className={`text-base font-sans mb-3 line-clamp-2 hidden sm:block ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              {article.excerpt.replace(/^#+\s*|^\*+|\*+$/g, '')}
+            </p>
+          </ArticleComponent>
 
           {/* Meta */}
           <div className="flex items-center justify-between pt-2">
@@ -1143,12 +1229,17 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
 
         {/* Image */}
         {article.image && (
-          <img
-            onClick={handleArticleClick}
-            src={article.image}
-            alt={article.title}
-            className="w-[112px] h-[112px] sm:w-[160px] sm:h-[107px] object-cover flex-shrink-0 ml-4 sm:ml-8"
-          />
+          <ArticleComponent
+            to={articleUrl}
+            className="cursor-pointer"
+            onClick={(e) => !articleUrl && handleArticleClick()}
+          >
+            <img
+              src={article.image}
+              alt={article.title}
+              className="w-[112px] h-[112px] sm:w-[160px] sm:h-[107px] object-cover flex-shrink-0 ml-4 sm:ml-8 rounded-lg"
+            />
+          </ArticleComponent>
         )}
       </div>
     </div>
@@ -1169,7 +1260,7 @@ function StatRow({ icon: Icon, label, value, isDark }) {
 
 function StaffPickCard({ pick, isDark, onArticleClick }) {
   const handleClick = () => {
-    if (onArticleClick && pick.blog) {
+    if (onArticleClick && pick.blog && !pick.authorUsername) {
       onArticleClick(pick.blog);
     }
   };
@@ -1179,25 +1270,50 @@ function StaffPickCard({ pick, isDark, onArticleClick }) {
     return name.charAt(0).toUpperCase();
   };
 
+  const articleSlug = createSlug(pick.title, pick.id);
+  const articleUrl = pick.authorUsername ? `/@${pick.authorUsername}/${articleSlug}` : null;
+  const authorUrl = pick.authorUsername ? `/@${pick.authorUsername}` : null;
+
+  const AuthorComponent = authorUrl ? Link : 'div';
+  const ArticleComponent = articleUrl ? Link : 'div';
+
   return (
-    <div onClick={handleClick} className="flex gap-3 cursor-pointer group hover:opacity-80 transition">
-      {pick.image ? (
-        <img
-          src={pick.image}
-          alt={pick.author}
-          className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
-        />
-      ) : (
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
-          {getInitials(pick.author)}
-        </div>
-      )}
+    <div onClick={(!articleUrl && !authorUrl) ? handleClick : undefined} className="flex gap-3 cursor-pointer group hover:opacity-80 transition relative">
+      <AuthorComponent
+        to={authorUrl}
+        className="block flex-shrink-0"
+        onClick={(e) => !authorUrl && handleClick()}
+      >
+        {pick.image ? (
+          <img
+            src={pick.image}
+            alt={pick.author}
+            className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+            {getInitials(pick.author)}
+          </div>
+        )}
+      </AuthorComponent>
       <div className="flex-1 min-w-0">
-        <h4 className={`text-sm font-medium mb-1 line-clamp-2 group-hover:text-scribe-green transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          {pick.title}
-        </h4>
+        <ArticleComponent
+          to={articleUrl}
+          className="block"
+          onClick={(e) => !articleUrl && handleClick()}
+        >
+          <h4 className={`text-sm font-medium mb-1 line-clamp-2 group-hover:text-scribe-green transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {pick.title}
+          </h4>
+        </ArticleComponent>
         <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-          <span>{pick.author}</span>
+          <AuthorComponent
+            to={authorUrl}
+            className="hover:underline"
+            onClick={(e) => !authorUrl && handleClick()}
+          >
+            <span>{pick.author}</span>
+          </AuthorComponent>
           <span>·</span>
           <span>{pick.time}</span>
         </div>

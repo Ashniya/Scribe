@@ -12,7 +12,8 @@ import {
     Bell,
     BarChart2,
     Feather,
-    Users
+    Users,
+    MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -122,6 +123,13 @@ export default function Sidebar({ isOpen, isDark, onLogout }) {
                     label="Profile"
                     active={location.pathname.startsWith('/profile')}
                     onClick={() => handleNavClick(null, '/profile')}
+                    isDark={isDark}
+                />
+                <NavItem
+                    icon={MessageSquare}
+                    label="Messages"
+                    active={location.state?.section === 'messages'}
+                    onClick={() => handleNavClick('messages')}
                     isDark={isDark}
                 />
                 <NavItem

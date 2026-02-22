@@ -26,7 +26,8 @@ const blogSchema = new mongoose.Schema({
         default: null
     },
     authorId: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
     authorName: {

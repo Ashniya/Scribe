@@ -105,6 +105,38 @@ export const getBlog = async (req, res, next) => {
     }
 };
 
+// @desc    Get blog by slug
+// @route   GET /api/blogs/slug/:slug
+// @access  Public
+export const getBlogBySlug = async (req, res, next) => {
+    try {
+        const { slug } = req.params;
+        // Extract ID from slug (format: title-id)
+        const id = slug.split('-').pop();
+
+        const blog = await findBlogById(id);
+
+        if (!blog) {
+            return res.status(404).json({
+                success: false,
+                message: 'Blog not found'
+            });
+        }
+
+        // Increment views
+        await incrementViews(id);
+        blog.views = (blog.views || 0) + 1;
+
+        res.status(200).json({
+            success: true,
+            data: blog
+        });
+    } catch (error) {
+        // If ID is invalid ObjectId, handle specific error or let global handler catch
+        next(error);
+    }
+};
+
 // @desc    Update blog
 // @route   PUT /api/blogs/:id
 // @access  Private

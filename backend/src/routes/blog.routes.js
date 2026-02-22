@@ -11,12 +11,14 @@ import {
     saveBlogPost,
     getStatsForUser,
     repostBlogPost,
-    trackReadTimeController
+    trackReadTimeController,
+    getBlogBySlug
 } from '../controllers/blog.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 
 // Public routes
 router.get('/', getAllBlogs);
+router.get('/slug/:slug', getBlogBySlug);
 router.get('/:id', getBlog);
 
 // Protected routes

@@ -136,9 +136,32 @@ router.get('/search', async (req, res) => {
       success: true,
       users
     });
+    // ... (previous search code)
   } catch (error) {
     console.error('Search users error:', error);
     res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
+/**
+ * Get user by username
+ */
+router.get('/username/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = await User.findOne({ username }).select('username displayName photoURL bio followerCount isVerified');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    console.error('Get user by username error:', error);
+    res.status(500).json({ error: 'Failed to get user' });
   }
 });
 

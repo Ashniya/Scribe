@@ -216,6 +216,10 @@ export const trackReadTime = async (blogId, duration) => {
   });
 };
 
+export const likeBlog = async (blogId) => {
+  return apiCall(`/blogs/${blogId}/like`, { method: 'POST' });
+};
+
 export default {
   registerUser,
   getCurrentUser,

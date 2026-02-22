@@ -33,8 +33,16 @@ import {
     BellOff
 } from 'lucide-react';
 
-export default function ProfileContent() {
+export default function ProfileContent({ onMessage }) {
     const { currentUser, setCurrentUser } = useAuth();
+    // ... (lines 38-277)
+    const handleMessage = () => {
+        if (onMessage && profile) {
+            onMessage(profile._id);
+        } else {
+            console.log('Open chat with', profile.username);
+        }
+    };
     // Use params if available, otherwise default to current user
     const { username } = useParams();
     const navigate = useNavigate();
@@ -275,10 +283,7 @@ export default function ProfileContent() {
         }
     };
 
-    const handleMessage = () => {
-        // Placeholder for message functionality
-        console.log('Open chat with', profile.username);
-    };
+
 
     if (loading && !profile) {
         return (

@@ -64,6 +64,7 @@ export const findAllPublishedBlogs = async (limit = 50, query = null) => {
     }
 
     const blogs = await Blog.find(filter)
+        .populate('authorId', 'username displayName photoURL')
         .sort({ publishedAt: -1 })
         .limit(limit)
         .lean();
@@ -73,6 +74,7 @@ export const findAllPublishedBlogs = async (limit = 50, query = null) => {
 
 export const findBlogsByAuthor = async (authorId) => {
     const blogs = await Blog.find({ authorId })
+        .populate('authorId', 'username displayName photoURL')
         .sort({ createdAt: -1 })
         .lean();
 
@@ -80,7 +82,9 @@ export const findBlogsByAuthor = async (authorId) => {
 };
 
 export const findBlogById = async (blogId) => {
-    const blog = await Blog.findById(blogId).lean();
+    const blog = await Blog.findById(blogId)
+        .populate('authorId', 'username displayName photoURL')
+        .lean();
     return blog || null;
 };
 
