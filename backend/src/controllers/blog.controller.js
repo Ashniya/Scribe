@@ -39,7 +39,23 @@ export const createBlogPost = async (req, res, next) => {
         });
     } catch (error) {
         console.error("SAVE ERROR 👉", error);
-        res.status(500).json({ message: "Failed to save blog" });
+
+        // Mongoose validation errors (missing title/content, etc.)
+        if (error?.name === 'ValidationError') {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation failed',
+                details: Object.values(error.errors || {}).map(e => e.message)
+            });
+        }
+
+        // Connection / buffering timeouts often show up as MongoServerSelectionError
+        const message = error?.message || 'Failed to save blog';
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to save blog',
+            error: process.env.NODE_ENV !== 'production' ? message : undefined
+        });
     }
 };
 

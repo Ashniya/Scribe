@@ -4,6 +4,8 @@ node_modules/
 dist/
 build/
 **/firebase-key.json
+**/ScribeServiceAccountKey.json
+**/*ServiceAccountKey*.json
 *.log
 Desktop/
 .idea/

@@ -178,9 +178,9 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes for faster queries
-userSchema.index({ username: 1 });
-userSchema.index({ email: 1 });
-userSchema.index({ firebaseUid: 1 });
+// userSchema.index({ username: 1 }); // Already indexed by unique: true
+// userSchema.index({ email: 1 });    // Already indexed by unique: true
+// userSchema.index({ firebaseUid: 1 }); // Already indexed by index: true
 
 // Virtual for profile URL
 userSchema.virtual('profileUrl').get(function () {

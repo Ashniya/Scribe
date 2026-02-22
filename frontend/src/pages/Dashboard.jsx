@@ -7,6 +7,8 @@ import { createSlug } from '../utils/slug';
 import Editor from '../components/Editor';
 import ArticleView from '../components/ArticleView';
 import ProfileSettings from '../components/ProfileSettings';
+import SettingsPage from '../components/Settingspage';
+
 import LoginPromptModal from '../components/LoginPromptModal';
 import FollowingPreferencesModal from '../components/FollowingPreferencesModal';
 import Onboarding from '../components/Onboarding';
@@ -521,25 +523,7 @@ export default function Dashboard({ initialSection = 'home' }) {
           </div>
         );
       case 'settings':
-        return (
-          <div className="max-w-2xl mx-auto py-12">
-            <h2 className={`text-3xl font-bold mb-8 ${isDark ? 'text-white' : 'text-gray-900'}`}>Settings</h2>
-            <div className="space-y-4">
-              <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
-                <h3 className={`font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Account</h3>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {currentUser?.email}
-                </p>
-              </div>
-              <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
-                <h3 className={`font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Theme</h3>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Current theme: {isDark ? 'Dark' : 'Light'}
-                </p>
-              </div>
-            </div>
-          </div>
-        );
+        return <SettingsPage />;
       default:
         return null;
     }
@@ -550,6 +534,7 @@ export default function Dashboard({ initialSection = 'home' }) {
       <ArticleView
         article={selectedArticle}
         isDark={isDark}
+        onToggleDark={() => setIsDark(!isDark)}
         onClose={() => setSelectedArticle(null)}
         onLike={() => handleLike(selectedArticle._id)}
         onSave={() => handleSave(selectedArticle._id)}

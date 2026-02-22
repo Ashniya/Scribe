@@ -1,134 +1,274 @@
-// frontend/src/App.jsx
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// import React from 'react';
+// import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// import Landing from './pages/Landing';
+// import LoginPage from './pages/Login';
+// import ForgotPassword from './pages/ForgotPassword';
+// import Dashboard from './pages/Dashboard';
+// import About from './pages/About';
+// import Profile from './pages/Profile';
+// import Stats from './pages/Stats';
+// import Search from './pages/Search';
+// import ProfileTest from './pages/ProfileTest';
+// import Contact from './pages/Contact';
+// import { ThemeProvider } from './context/ThemeContext';
+// import { AuthProvider } from './context/AuthContext';
+// import { ToastProvider } from './components/Toast';
+// import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
+// import ArticlePage from './pages/ArticlePage';
+
+// function App() {
+//   return (
+//     <ThemeProvider>
+//       <ToastProvider>
+//         <Router>
+//           <AuthProvider>
+//             <Routes>
+//               {/* Public routes */}
+//               <Route path="/" element={<Landing />} />
+//               <Route path="/about" element={<About />} />
+//               <Route path="/contact" element={<Contact />} />
+
+//               {/* Login/Auth routes - only when NOT logged in */}
+//               <Route
+//                 path="/login"
+//                 element={
+//                   <PublicOnlyRoute>
+//                     <LoginPage />
+//                   </PublicOnlyRoute>
+//                 }
+//               />
+//               <Route path="/forgot-password" element={<ForgotPassword />} />
+
+//             {/* Dashboard - home feed only */}
+//             <Route
+//               path="/dashboard"
+//               element={
+//                 <ProtectedRoute>
+//                   <Dashboard />
+//                 </ProtectedRoute>
+//               }
+//             />
+
+//             {/* Messages Route */}
+//             <Route
+//               path="/dashboard/messages"
+//               element={
+//                 <ProtectedRoute>
+//                   <Dashboard initialSection="messages" />
+//                 </ProtectedRoute>
+//               }
+//             />
+//             <Route
+//               path="/dashboard/messages/:conversationId"
+//               element={
+//                 <ProtectedRoute>
+//                   <Dashboard initialSection="messages" />
+//                 </ProtectedRoute>
+//               }
+//             />
+
+//               <Route
+//                 path="/profile"
+//                 element={
+//                   <ProtectedRoute>
+//                     <Profile />
+//                   </ProtectedRoute>
+//                 }
+//               />
+
+//               <Route
+//                 path="/profile/:username"
+//                 element={
+//                   <ProtectedRoute>
+//                     <Profile />
+//                   </ProtectedRoute>
+//                 }
+//               />
+
+//               <Route
+//                 path="/stats"
+//                 element={
+//                   <ProtectedRoute>
+//                     <Stats />
+//                   </ProtectedRoute>
+//                 }
+//               />
+
+//               <Route
+//                 path="/search"
+//                 element={
+//                   <ProtectedRoute>
+//                     <Search />
+//                   </ProtectedRoute>
+//                 }
+//               />
+
+//               <Route
+//                 path="/profile-test"
+//                 element={
+//                   <ProtectedRoute>
+//                     <ProfileTest />
+//                   </ProtectedRoute>
+//                 }
+//               />
+
+//               {/* 404 */}
+//               <Route path="*" element={<Navigate to="/" replace />} />
+//             </Routes>
+//           </AuthProvider>
+//         </Router>
+//       </ToastProvider>
+//     </ThemeProvider>
+//   );
+// }
+
+// export default App;
+
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import LoginPage from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
+import About from './pages/About';
 import Profile from './pages/Profile';
 import Stats from './pages/Stats';
 import Search from './pages/Search';
 import ProfileTest from './pages/ProfileTest';
 import Contact from './pages/Contact';
+import ArticlePage from './pages/ArticlePage';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './components/Toast';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
-import ArticlePage from './pages/ArticlePage';
 
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <AuthProvider>
-          <Routes>
+      <ToastProvider>
+        <Router>
+          <AuthProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
 
-            {/* Public routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/contact" element={<Contact />} />
+              {/* Login/Auth routes - only when NOT logged in */}
+              <Route
+                path="/login"
+                element={
+                  <PublicOnlyRoute>
+                    <LoginPage />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
-            {/* Login - only when NOT logged in */}
-            <Route
-              path="/login"
-              element={
-                <PublicOnlyRoute>
-                  <LoginPage />
-                </PublicOnlyRoute>
-              }
-            />
+              {/* Dashboard - home feed */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Dashboard - home feed only */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
+              {/* Messages Routes */}
+              <Route
+                path="/dashboard/messages"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard initialSection="messages" />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/messages/:conversationId"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard initialSection="messages" />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Messages Route */}
-            <Route
-              path="/dashboard/messages"
-              element={
-                <ProtectedRoute>
-                  <Dashboard initialSection="messages" />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/messages/:conversationId"
-              element={
-                <ProtectedRoute>
-                  <Dashboard initialSection="messages" />
-                </ProtectedRoute>
-              }
-            />
+              {/* Your own profile */}
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Your own profile */}
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
+              {/* User profiles - @username format (your version) */}
+              <Route
+                path="/@:username"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* User Profile */}
-            <Route
-              path="/@:username"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
+              {/* Friend's /profile/:username format - keep for compatibility */}
+              <Route
+                path="/profile/:username"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Article Page */}
-            <Route
-              path="/@:username/:slug"
-              element={
-                <ProtectedRoute>
-                  <ArticlePage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Article Page - Substack-style URLs */}
+              <Route
+                path="/@:username/:slug"
+                element={
+                  <ProtectedRoute>
+                    <ArticlePage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Stats */}
-            <Route
-              path="/stats"
-              element={
-                <ProtectedRoute>
-                  <Stats />
-                </ProtectedRoute>
-              }
-            />
+              {/* Stats */}
+              <Route
+                path="/stats"
+                element={
+                  <ProtectedRoute>
+                    <Stats />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Search / Explore */}
-            <Route
-              path="/search"
-              element={
-                <ProtectedRoute>
-                  <Search />
-                </ProtectedRoute>
-              }
-            />
+              {/* Search / Explore */}
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute>
+                    <Search />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Profile Test */}
-            <Route
-              path="/profile-test"
-              element={
-                <ProtectedRoute>
-                  <ProfileTest />
-                </ProtectedRoute>
-              }
-            />
+              {/* Profile Test */}
+              <Route
+                path="/profile-test"
+                element={
+                  <ProtectedRoute>
+                    <ProfileTest />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* 404 */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-
-          </Routes>
-        </AuthProvider>
-      </Router>
+              {/* 404 */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AuthProvider>
+        </Router>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

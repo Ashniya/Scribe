@@ -28,6 +28,13 @@ const commentSchema = new mongoose.Schema({
         required: [true, 'Comment content is required'],
         trim: true,
         maxlength: 2000
+    },
+    likes: [{
+        type: String // store userIds
+    }],
+    likeCount: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true

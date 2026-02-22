@@ -1,4 +1,3 @@
-// frontend/src/context/AuthContext.jsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   onAuthStateChanged,
@@ -48,27 +47,29 @@ export const AuthProvider = ({ children }) => {
         try {
           // Get fresh token then sync with MongoDB
           await firebaseUser.getIdToken();
+          // Dynamic import to avoid circular dependencies if api depends on auth
           const { getCurrentUser } = await import('../utils/api');
           const response = await getCurrentUser();
 
-          if (response?.success && response?.data) {
+          // Check for response.user (standard) or response.data (axios wrapper)
+          const userData = response?.data || response?.user;
+
+          if (response?.success && userData) {
             // Merge MongoDB data into currentUser
-            // Prioritize MongoDB photoURL if it exists and isn't a default placeholder if we want, but usually MongoDB is the source of truth for profile edits.
-            const mergedUser = { 
-              ...firebaseUser, 
-              ...response.data,
-              photoURL: response.data.photoURL || firebaseUser.photoURL, // Explicitly prefer MongoDB photoURL
-              displayName: response.data.displayName || firebaseUser.displayName
+            const mergedUser = {
+              ...firebaseUser,
+              ...userData,
+              photoURL: userData.photoURL || firebaseUser.photoURL,
+              displayName: userData.displayName || firebaseUser.displayName
             };
             setCurrentUser(mergedUser);
-            setMongoUser(response.data);
-            console.log('✅ User synced with MongoDB:', response.data.email, '| photoURL:', mergedUser.photoURL);
+            setMongoUser(userData);
+            console.log('✅ User synced with MongoDB:', userData.email);
           } else {
             console.warn('⚠️ MongoDB sync returned unexpected response:', response);
           }
         } catch (err) {
           console.error('❌ Error syncing with MongoDB:', err.message);
-          // Keep Firebase user even if MongoDB sync fails
         } finally {
           setLoading(false);
         }
@@ -91,7 +92,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     currentUser,
-    mongoUser,      // expose mongoUser separately (has username, bio, etc.)
+    mongoUser,
     setCurrentUser,
     loading,
     signOut
