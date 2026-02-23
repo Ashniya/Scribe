@@ -31,7 +31,7 @@ export default function Editor({ onClose, isDark: propIsDark }) {
     const [content, setContent] = useState('');
     const [coverImage, setCoverImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
-    const [category, setCategory] = useState('');
+    const [category, setCategory] = useState('General');
     const [tags, setTags] = useState('');
     const [status, setStatus] = useState('draft');
     const [error, setError] = useState('');
@@ -42,8 +42,8 @@ export default function Editor({ onClose, isDark: propIsDark }) {
 
     // Categories
     const categories = [
-        'Technology', 'Design', 'Culture', 'Politics', 'Health', 'Science',
-        'Programming', 'Cryptocurrency', 'Artificial Intelligence', 'Cybersecurity', 'Self-Improvement'
+        'General', 'Technology', 'Health', 'Writing', 'Productivity',
+        'Business', 'Lifestyle', 'Design', 'Programming', 'Science'
     ];
 
     // Save selection so toolbar clicks don't lose it
@@ -127,10 +127,6 @@ export default function Editor({ onClose, isDark: propIsDark }) {
             setError('Please write some content');
             return;
         }
-        if (!category) {
-            setError('Please select a category');
-            return;
-        }
 
         setStatus('publishing');
         setError('');
@@ -150,14 +146,9 @@ export default function Editor({ onClose, isDark: propIsDark }) {
                 title,
                 content: contentEditableRef.current.innerHTML,
                 excerpt: contentEditableRef.current.innerText.slice(0, 150) + '...',
-                category,
+                category: category || 'General',
                 tags: tags.split(',').map(t => t.trim()).filter(t => t),
                 coverImage: uploadedImageUrl,
-                readTime: Math.ceil(contentEditableRef.current.innerText.split(' ').length / 200),
-                authorName: mongoUser?.displayName || currentUser?.displayName || 'Anonymous',
-                authorPhotoURL: mongoUser?.photoURL || currentUser?.photoURL,
-                authorEmail: currentUser?.email,
-                authorId: currentUser?.uid
             };
 
             const result = await createBlog(blogData);

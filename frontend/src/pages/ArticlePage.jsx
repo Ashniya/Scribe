@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ThemeContext } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import ArticleView from '../components/ArticleView';
-import { getBlogById, saveBlog, likeBlog } from '../utils/api'; // Assuming these exist or use fetch directly
+import { getBlogById } from '../utils/api';
 
 export default function ArticlePage() {
-    const { slug } = useParams();
+    const { id, slug } = useParams();
     const { isDark } = useContext(ThemeContext);
     const { currentUser } = useAuth();
     const [article, setArticle] = useState(null);
@@ -18,42 +18,34 @@ export default function ArticlePage() {
         const fetchArticle = async () => {
             setLoading(true);
             try {
-                // Extract ID from slug (format: title-id)
-                // The ID is the last part after the last hyphen
-                const id = slug.split('-').pop();
-
-                if (!id || id.length < 24) {
-                    throw new Error('Invalid article ID');
+                // Use id param directly — simple and reliable
+                const articleId = id;
+                if (!articleId) {
+                    setError('No article ID provided');
+                    setLoading(false);
+                    return;
                 }
-
-                const res = await getBlogById(id);
-                if (res.success) {
+                const res = await getBlogById(articleId);
+                if (res && res._id) {
+                    setArticle(res);
+                } else if (res && res.data) {
                     setArticle(res.data);
                 } else {
                     setError('Article not found');
                 }
             } catch (err) {
-                console.error(err);
+                console.error('Error fetching article:', err);
                 setError('Failed to load article');
             } finally {
                 setLoading(false);
             }
         };
 
-        if (slug) {
-            fetchArticle();
-        }
-    }, [slug]);
+        fetchArticle();
+    }, [id]);
 
     const handleBack = () => {
-        navigate(-1);
-    };
-
-    const handleLike = async () => {
-        if (!article || !currentUser) return;
-        // Optimistic update
-        // Implemented in Dashboard/ArticleView logic usually
-        // Here we can just call API and refresh or update state
+        navigate('/dashboard');
     };
 
     if (loading) {
@@ -84,9 +76,6 @@ export default function ArticlePage() {
             isPage={true}
             currentUser={currentUser}
             onClose={handleBack}
-        // Add onLike, onSave handlers if needed, ArticleView usually expects them
-        // For now, let's assume ArticleView handles internal logic or we need to pass them
-        // Re-using logic from Dashboard would differ slightly
         />
     );
 }

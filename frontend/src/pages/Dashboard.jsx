@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { auth } from '../config/firebase.js';
 import { createSlug } from '../utils/slug';
+import { getFollowing } from '../utils/api';
 import Editor from '../components/Editor';
 import ArticleView from '../components/ArticleView';
 import ProfileSettings from '../components/ProfileSettings';
@@ -59,6 +60,51 @@ export default function Dashboard({ initialSection = 'home' }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState(location.state?.section || initialSection);
   const [initialConversationId, setInitialConversationId] = useState(null);
+  const [followingUsers, setFollowingUsers] = useState([]);
+  const [followingLoading, setFollowingLoading] = useState(false);
+
+  // Section → URL mapping
+  const sectionToUrl = {
+    home: '/dashboard',
+    library: '/dashboard/library',
+    profile: '/dashboard/profile',
+    stories: '/dashboard/stories',
+    stats: '/dashboard/stats',
+    following: '/dashboard/following',
+    favorites: '/dashboard/favorites',
+    collections: '/dashboard/collections',
+    notifications: '/dashboard/notifications',
+    messages: '/dashboard/messages',
+    settings: '/dashboard/settings',
+    search: '/dashboard/search'
+  };
+
+  const handleSectionChange = (section) => {
+    setActiveSection(section);
+    const url = sectionToUrl[section] || '/dashboard';
+    // Use pushState instead of navigate to avoid remounting the Dashboard component
+    window.history.pushState({}, '', url);
+  };
+
+  // Handle browser back/forward button
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/dashboard') {
+        setActiveSection('home');
+      } else if (path.startsWith('/dashboard/')) {
+        const section = path.replace('/dashboard/', '');
+        const validSections = Object.keys(sectionToUrl);
+        if (validSections.includes(section)) {
+          setActiveSection(section);
+        } else {
+          setActiveSection('home');
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     // Handle conversation ID from state (when clicking Message button)
@@ -84,6 +130,21 @@ export default function Dashboard({ initialSection = 'home' }) {
     }
   }, [location.state, initialSection]);
 
+  // Fetch following users when that section is active
+  useEffect(() => {
+    if (activeSection === 'following' && mongoUser?.username) {
+      setFollowingLoading(true);
+      getFollowing(mongoUser.username)
+        .then(res => {
+          if (res.success) {
+            setFollowingUsers(res.users || res.data || []);
+          }
+        })
+        .catch(err => console.error('Failed to fetch following:', err))
+        .finally(() => setFollowingLoading(false));
+    }
+  }, [activeSection, mongoUser?.username]);
+
   const [showEditor, setShowEditor] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -100,6 +161,7 @@ export default function Dashboard({ initialSection = 'home' }) {
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [staffPicks, setStaffPicks] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [followingAuthor, setFollowingAuthor] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -167,8 +229,8 @@ export default function Dashboard({ initialSection = 'home' }) {
           b._id === blogId
             ? {
               ...b, likes: data.data.isLiked
-                ? [...(b.likes || []), currentUser?.uid]
-                : (b.likes || []).filter(id => id !== currentUser?.uid),
+                ? [...(b.likes || []), mongoUser?._id]
+                : (b.likes || []).filter(id => id !== mongoUser?._id),
               likescount: data.data.likes
             }
             : b
@@ -180,8 +242,21 @@ export default function Dashboard({ initialSection = 'home' }) {
   };
 
   const [savedBlogs, setSavedBlogs] = useState(() => {
+    // Initialize from mongoUser.savedPosts (server-side) or fall back to localStorage
+    if (mongoUser?.savedPosts?.length) {
+      return mongoUser.savedPosts.map(id => id.toString());
+    }
     try { return JSON.parse(localStorage.getItem('savedBlogs') || '[]'); } catch { return []; }
   });
+
+  // Sync savedBlogs from server when mongoUser loads asynchronously
+  useEffect(() => {
+    if (mongoUser?.savedPosts?.length) {
+      const serverSaved = mongoUser.savedPosts.map(id => id.toString());
+      setSavedBlogs(serverSaved);
+      localStorage.setItem('savedBlogs', JSON.stringify(serverSaved));
+    }
+  }, [mongoUser?.savedPosts]);
 
   const handleSave = async (blogId) => {
     try {
@@ -396,14 +471,59 @@ export default function Dashboard({ initialSection = 'home' }) {
         />;
       case 'following':
         return (
-          <div className="text-center py-20">
-            <TrendingUp className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
-            <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Following</h2>
-            <p className={`text-gray-500`}>Writers and publications you follow will appear here</p>
+          <div>
+            <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <Users className="w-6 h-6 inline mr-2 text-scribe-green" />
+              Following
+            </h2>
+            {followingLoading ? (
+              <div className="flex justify-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-scribe-green"></div>
+              </div>
+            ) : followingUsers.length === 0 ? (
+              <div className="text-center py-16">
+                <Users className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
+                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>You're not following anyone yet</p>
+                <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  Follow writers to see their content here
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {followingUsers.map(user => (
+                  <div
+                    key={user._id}
+                    onClick={() => navigate(`/@${user.username}`)}
+                    className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer hover:shadow-md transition ${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                  >
+                    {user.photoURL ? (
+                      <img src={user.photoURL} alt={user.displayName} className="w-12 h-12 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold">
+                        {user.displayName?.[0]?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        {user.displayName}
+                      </h3>
+                      <p className={`text-sm truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        @{user.username}
+                      </p>
+                      {user.bio && (
+                        <p className={`text-xs mt-1 line-clamp-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          {user.bio}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       case 'favorites': {
-        const likedBlogs = blogs.filter(b => b.likes?.includes(currentUser?.uid));
+        const likedBlogs = blogs.filter(b => b.likes?.includes(mongoUser?._id));
         return (
           <div>
             <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -495,7 +615,7 @@ export default function Dashboard({ initialSection = 'home' }) {
                       claps: blog.likes?.length || 0,
                       comments: blog.commentscount || 0,
                       views: blog.views,
-                      isLiked: blog.likes?.includes(currentUser?.uid),
+                      isLiked: blog.likes?.includes(mongoUser?._id),
                       isSaved: true,
                       authorEmail: blog.authorEmail
                     }}
@@ -538,7 +658,7 @@ export default function Dashboard({ initialSection = 'home' }) {
         onClose={() => setSelectedArticle(null)}
         onLike={() => handleLike(selectedArticle._id)}
         onSave={() => handleSave(selectedArticle._id)}
-        isLiked={selectedArticle.likes?.includes(currentUser?.uid)}
+        isLiked={selectedArticle.likes?.includes(mongoUser?._id)}
         isSaved={savedBlogs.includes(selectedArticle._id)}
         currentUser={currentUser}
       />
@@ -599,20 +719,20 @@ export default function Dashboard({ initialSection = 'home' }) {
 
             {/* Navigation */}
             <nav className="flex-1 px-0 py-6">
-              <NavItem icon={Home} label="Home" active={activeSection === 'home'} onClick={() => setActiveSection('home')} isDark={isDark} />
-              <NavItem icon={BookOpen} label="Library" active={activeSection === 'library'} onClick={() => setActiveSection('library')} isDark={isDark} />
-              <NavItem icon={Users} label="Profile" active={activeSection === 'profile'} onClick={() => setActiveSection('profile')} isDark={isDark} />
-              <NavItem icon={PenTool} label="Stories" active={activeSection === 'stories'} onClick={() => setActiveSection('stories')} isDark={isDark} />
-              <NavItem icon={BarChart3} label="Stats" active={activeSection === 'stats'} onClick={() => setActiveSection('stats')} isDark={isDark} />
+              <NavItem icon={Home} label="Home" active={activeSection === 'home'} onClick={() => handleSectionChange('home')} isDark={isDark} />
+              <NavItem icon={BookOpen} label="Library" active={activeSection === 'library'} onClick={() => handleSectionChange('library')} isDark={isDark} />
+              <NavItem icon={Users} label="Profile" active={activeSection === 'profile'} onClick={() => handleSectionChange('profile')} isDark={isDark} />
+              <NavItem icon={PenTool} label="Stories" active={activeSection === 'stories'} onClick={() => handleSectionChange('stories')} isDark={isDark} />
+              <NavItem icon={BarChart3} label="Stats" active={activeSection === 'stats'} onClick={() => handleSectionChange('stats')} isDark={isDark} />
 
               <div className={`h-px my-6 ${isDark ? 'bg-slate-700' : 'bg-gray-200'}`}></div>
 
-              <NavItem icon={TrendingUp} label="Following" active={activeSection === 'following'} onClick={() => setActiveSection('following')} isDark={isDark} />
-              <NavItem icon={Heart} label="Favorites" active={activeSection === 'favorites'} onClick={() => setActiveSection('favorites')} isDark={isDark} />
-              <NavItem icon={Bookmark} label="Collections" active={activeSection === 'collections'} onClick={() => setActiveSection('collections')} isDark={isDark} />
-              <NavItem icon={Bell} label="Notifications" active={activeSection === 'notifications'} onClick={() => setActiveSection('notifications')} isDark={isDark} />
-              <NavItem icon={MessageSquare} label="Messages" active={activeSection === 'messages'} onClick={() => navigate('/dashboard/messages')} isDark={isDark} />
-              <NavItem icon={Settings} label="Settings" active={activeSection === 'settings'} onClick={() => setActiveSection('settings')} isDark={isDark} />
+              <NavItem icon={TrendingUp} label="Following" active={activeSection === 'following'} onClick={() => handleSectionChange('following')} isDark={isDark} />
+              <NavItem icon={Heart} label="Favorites" active={activeSection === 'favorites'} onClick={() => handleSectionChange('favorites')} isDark={isDark} />
+              <NavItem icon={Bookmark} label="Collections" active={activeSection === 'collections'} onClick={() => handleSectionChange('collections')} isDark={isDark} />
+              <NavItem icon={Bell} label="Notifications" active={activeSection === 'notifications'} onClick={() => handleSectionChange('notifications')} isDark={isDark} />
+              <NavItem icon={MessageSquare} label="Messages" active={activeSection === 'messages'} onClick={() => handleSectionChange('messages')} isDark={isDark} />
+              <NavItem icon={Settings} label="Settings" active={activeSection === 'settings'} onClick={() => handleSectionChange('settings')} isDark={isDark} />
             </nav>
 
             {/* User Info & Logout */}
@@ -670,7 +790,7 @@ export default function Dashboard({ initialSection = 'home' }) {
                           onChange={(e) => setSearchQuery(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                              setActiveSection('search');
+                              handleSectionChange('search');
                             }
                           }}
                           className={`w-full pl-10 pr-4 py-2 rounded-full border transition ${isDark
@@ -763,7 +883,7 @@ export default function Dashboard({ initialSection = 'home' }) {
                             <button
                               onClick={() => {
                                 setShowProfileMenu(false);
-                                handleProtectedAction(() => setActiveSection('profile'));
+                                handleProtectedAction(() => handleSectionChange('profile'));
                               }}
                               className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${isDark ? 'text-gray-300 hover:bg-slate-700' : 'text-gray-700 hover:bg-gray-50'}`}
                             >
@@ -773,7 +893,7 @@ export default function Dashboard({ initialSection = 'home' }) {
                             <button
                               onClick={() => {
                                 setShowProfileMenu(false);
-                                handleProtectedAction(() => setActiveSection('settings'));
+                                handleProtectedAction(() => handleSectionChange('settings'));
                               }}
                               className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${isDark ? 'text-gray-300 hover:bg-slate-700' : 'text-gray-700 hover:bg-gray-50'}`}
                             >
@@ -921,17 +1041,11 @@ export default function Dashboard({ initialSection = 'home' }) {
                                 claps: blog.likes?.length || blog.likescount || 0,
                                 comments: blog.commentscount || 0,
                                 views: blog.views,
-                                isLiked: blog.likes?.includes(currentUser?.uid),
+                                isLiked: blog.likes?.includes(mongoUser?._id),
                                 isSaved: savedBlogs.includes(blog._id)
                               }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => {
-                                // Navigate to article page
-                                if (blog.authorId?.username) {
-                                  navigate(`/@${blog.authorId.username}/${createSlug(blog.title, blog._id)}`);
-                                } else {
-                                  // Fallback if no username (though shouldn't happen with updated backend)
-                                  console.error("Missing username for article navigation", blog);
-                                  setSelectedArticle(blog); // Fallback to modal
-                                }
+                                // Navigate to article page using simple ID route
+                                navigate(`/article/${blog._id}`);
                               }} onFollowAuthor={setFollowingAuthor} currentUser={currentUser} onDelete={handleDelete} />
                             ))}
                           </>
@@ -1101,12 +1215,11 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
     });
   };
 
-  const articleSlug = createSlug(article.title, article.id);
-  const articleUrl = article.authorUsername ? `/@${article.authorUsername}/${articleSlug}` : null;
+  const articleUrl = `/article/${article.id}`;
   const authorUrl = article.authorUsername ? `/@${article.authorUsername}` : null;
 
   const AuthorComponent = authorUrl ? Link : 'div';
-  const ArticleComponent = articleUrl ? Link : 'div';
+  const ArticleComponent = Link;
 
   return (
     <div
@@ -1255,12 +1368,11 @@ function StaffPickCard({ pick, isDark, onArticleClick }) {
     return name.charAt(0).toUpperCase();
   };
 
-  const articleSlug = createSlug(pick.title, pick.id);
-  const articleUrl = pick.authorUsername ? `/@${pick.authorUsername}/${articleSlug}` : null;
+  const articleUrl = `/article/${pick.id}`;
   const authorUrl = pick.authorUsername ? `/@${pick.authorUsername}` : null;
 
   const AuthorComponent = authorUrl ? Link : 'div';
-  const ArticleComponent = articleUrl ? Link : 'div';
+  const ArticleComponent = Link;
 
   return (
     <div onClick={(!articleUrl && !authorUrl) ? handleClick : undefined} className="flex gap-3 cursor-pointer group hover:opacity-80 transition relative">

@@ -4,7 +4,8 @@ export const createSlug = (title, id) => {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
-    return `${slug}${id ? `-${id}` : ''}`;
+    // Use last 6 chars of MongoDB ObjectId for uniqueness without polluting the URL
+    return `${slug}${id ? `-${id.slice(-6)}` : ''}`;
 };
 
 export const extractIdFromSlug = (slug) => {

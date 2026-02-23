@@ -5,9 +5,6 @@ import { io } from 'socket.io-client';
 import {
     Send,
     MoreVertical,
-    Phone,
-    Video,
-    Info,
     Image as ImageIcon,
     Smile,
     Search,
@@ -99,7 +96,9 @@ export default function MessagesContent({ initialConversationId }) {
             // Update messages if this conversation is open
             if (selectedConversation?._id === conversationId) {
                 setMessages(prev => {
-                    // Remove optimistic message if exists
+                    // Skip if we already have this message (from our own send)
+                    if (prev.some(m => m._id === message._id)) return prev;
+                    // Remove optimistic messages and add the real one
                     const filtered = prev.filter(m => !m.isOptimistic);
                     return [...filtered, message];
                 });
@@ -232,9 +231,11 @@ export default function MessagesContent({ initialConversationId }) {
         try {
             const res = await sendMessage(selectedConversation._id, text);
             if (res.success) {
-                // Socket event will handle adding the real message
-                // Remove optimistic message
-                setMessages(prev => prev.filter(m => m._id !== tempMessage._id));
+                // Replace optimistic message with real message from server
+                const realMessage = res.data;
+                setMessages(prev => prev.map(m =>
+                    m._id === tempMessage._id ? realMessage : m
+                ));
             } else {
                 // Remove temp message on failure
                 setMessages(prev => prev.filter(m => m._id !== tempMessage._id));
@@ -361,11 +362,7 @@ export default function MessagesContent({ initialConversationId }) {
                                     </span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-4 text-gray-500">
-                                <button><Phone className="w-5 h-5 hover:text-gray-900 dark:hover:text-white" /></button>
-                                <button><Video className="w-5 h-5 hover:text-gray-900 dark:hover:text-white" /></button>
-                                <button><Info className="w-5 h-5 hover:text-gray-900 dark:hover:text-white" /></button>
-                            </div>
+
                         </div>
 
                         {/* Messages */}

@@ -45,6 +45,15 @@ export const createBlog = async (blogData) => {
         publishedAt: new Date()
     });
 
+    // Generate slug from title + last 6 chars of _id for uniqueness
+    const baseSlug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    const slug = `${baseSlug}-${blog._id.toString().slice(-6)}`;
+    blog.slug = slug;
+    await blog.save();
+
     return {
         _id: blog._id,
         ...blog.toObject()
@@ -52,7 +61,8 @@ export const createBlog = async (blogData) => {
 };
 
 export const findAllPublishedBlogs = async (limit = 50, query = null) => {
-    let filter = { published: true };
+    // Use $ne: false so old blogs without the `published` field set also appear
+    let filter = { published: { $ne: false } };
 
     if (query) {
         filter.$or = [
@@ -64,28 +74,48 @@ export const findAllPublishedBlogs = async (limit = 50, query = null) => {
     }
 
     const blogs = await Blog.find(filter)
-        .populate('authorId', 'username displayName photoURL')
         .sort({ publishedAt: -1 })
         .limit(limit)
         .lean();
 
-    return blogs;
+    // Populate author info only for blogs with a valid ObjectId authorId
+    // (old blogs may have a Firebase UID string stored there, which would cause a CastError)
+    const mongoose = await import('mongoose');
+    const populatedBlogs = await Promise.all(blogs.map(async (blog) => {
+        if (blog.authorId && mongoose.default.Types.ObjectId.isValid(blog.authorId)) {
+            const populated = await Blog.populate(blog, { path: 'authorId', select: 'username displayName photoURL' });
+            return populated;
+        }
+        return blog;
+    }));
+
+    return populatedBlogs;
 };
 
 export const findBlogsByAuthor = async (authorId) => {
+    // authorId may be a MongoDB ObjectId. Use isValid check to be safe.
+    const mongoose = await import('mongoose');
     const blogs = await Blog.find({ authorId })
-        .populate('authorId', 'username displayName photoURL')
         .sort({ createdAt: -1 })
         .lean();
 
-    return blogs;
+    return Promise.all(blogs.map(async (blog) => {
+        if (blog.authorId && mongoose.default.Types.ObjectId.isValid(blog.authorId)) {
+            return Blog.populate(blog, { path: 'authorId', select: 'username displayName photoURL' });
+        }
+        return blog;
+    }));
 };
 
 export const findBlogById = async (blogId) => {
-    const blog = await Blog.findById(blogId)
-        .populate('authorId', 'username displayName photoURL')
-        .lean();
-    return blog || null;
+    const blog = await Blog.findById(blogId).lean();
+    if (!blog) return null;
+
+    const mongoose = await import('mongoose');
+    if (blog.authorId && mongoose.default.Types.ObjectId.isValid(blog.authorId)) {
+        return Blog.populate(blog, { path: 'authorId', select: 'username displayName photoURL' });
+    }
+    return blog;
 };
 
 export const updateBlog = async (blogId, updateData) => {

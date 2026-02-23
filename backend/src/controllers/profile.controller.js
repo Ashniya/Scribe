@@ -40,19 +40,20 @@ export const updateProfile = async (req, res) => {
     const user = await User.findById(req.user._id);
 
     if (user) {
-      user.displayName = displayName || user.displayName;
-      user.username = username || user.username; // TODO: Check for uniqueness if changed
-      user.bio = bio || user.bio;
-      user.location = location || user.location;
-      user.occupation = occupation || user.occupation;
-      user.socialLinks = socialLinks || user.socialLinks;
-
+      // Check username uniqueness BEFORE assigning
       if (username && username !== user.username) {
         const existingUser = await User.findOne({ username });
         if (existingUser) {
           return res.status(400).json({ success: false, message: 'Username already taken' });
         }
+        user.username = username;
       }
+
+      user.displayName = displayName || user.displayName;
+      user.bio = bio !== undefined ? bio : user.bio;
+      user.location = location !== undefined ? location : user.location;
+      user.occupation = occupation !== undefined ? occupation : user.occupation;
+      user.socialLinks = socialLinks || user.socialLinks;
 
       const updatedUser = await user.save();
       res.json({ success: true, user: updatedUser });

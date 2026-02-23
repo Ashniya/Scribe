@@ -80,8 +80,8 @@ export default function StatsContent() {
                 {/* Key Metrics Grid */}
                 <div className="grid grid-cols-2 gap-4 mb-12">
                     <MetricCard
-                        title="Subscribers"
-                        value={statsData.subscriberCount}
+                        title="Followers"
+                        value={statsData.followerCount ?? statsData.followerCount ?? 0}
                         icon={Bell}
                         isDark={isDark}
                     />

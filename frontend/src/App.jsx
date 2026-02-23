@@ -125,7 +125,7 @@
 // export default App;
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import Landing from './pages/Landing';
 import LoginPage from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
@@ -141,6 +141,14 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './components/Toast';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
+
+// Maps /dashboard/:section URL param to Dashboard initialSection
+const VALID_SECTIONS = ['library', 'profile', 'stories', 'stats', 'following', 'favorites', 'collections', 'notifications', 'settings', 'search'];
+function DashboardSectionRouter() {
+  const { section } = useParams();
+  const validSection = VALID_SECTIONS.includes(section) ? section : 'home';
+  return <Dashboard initialSection={validSection} />;
+}
 
 function App() {
   return (
@@ -193,6 +201,16 @@ function App() {
                 }
               />
 
+              {/* Dashboard section routes (following, favorites, collections, etc.) */}
+              <Route
+                path="/dashboard/:section"
+                element={
+                  <ProtectedRoute>
+                    <DashboardSectionRouter />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Your own profile */}
               <Route
                 path="/profile"
@@ -223,7 +241,17 @@ function App() {
                 }
               />
 
-              {/* Article Page - Substack-style URLs */}
+              {/* Article Page - simple ID-based route (primary) */}
+              <Route
+                path="/article/:id"
+                element={
+                  <ProtectedRoute>
+                    <ArticlePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Article Page - Substack-style URLs (kept for compatibility) */}
               <Route
                 path="/@:username/:slug"
                 element={

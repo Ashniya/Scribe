@@ -484,7 +484,12 @@ export const getAllBlogs = async (page = 1, limit = 20) => {
 };
 
 export const getMyBlogs = async () => {
-  return apiCall('/blogs/my-blogs');
+  return apiCall('/blogs/user/my-blogs');
+};
+
+export const getBlogBySlug = async (slug) => {
+  const response = await fetch(`${API_URL}/blogs/slug/${slug}`);
+  return response.json();
 };
 
 export const createBlog = async (blogData) => {

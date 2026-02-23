@@ -1,3 +1,5 @@
+import mongoose from 'mongoose';
+import Blog from '../models/Blog.js';
 import {
     createBlog,
     findAllPublishedBlogs,
@@ -127,10 +129,40 @@ export const getBlog = async (req, res, next) => {
 export const getBlogBySlug = async (req, res, next) => {
     try {
         const { slug } = req.params;
-        // Extract ID from slug (format: title-id)
-        const id = slug.split('-').pop();
 
-        const blog = await findBlogById(id);
+        // 1. Try to find by the stored slug field (new articles)
+        let blog = await Blog.findOne({ slug }).lean();
+
+        // 2. Fallback: try matching last 6 chars of _id (our slug format: title-<last6>)
+        if (!blog) {
+            const suffix = slug.split('-').pop();
+            if (suffix && suffix.length === 6) {
+                // Use aggregation to convert _id to string and match suffix
+                const candidates = await Blog.aggregate([
+                    { $addFields: { idStr: { $toString: '$_id' } } },
+                    { $match: { idStr: { $regex: new RegExp(suffix + '$') } } },
+                    { $limit: 5 }
+                ]);
+                if (candidates.length === 1) {
+                    blog = candidates[0];
+                } else if (candidates.length > 1) {
+                    // Disambiguate by title match
+                    const titlePart = slug.slice(0, slug.lastIndexOf('-' + suffix));
+                    blog = candidates.find(b => {
+                        const bSlug = b.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                        return bSlug === titlePart;
+                    }) || candidates[0];
+                }
+            }
+        }
+
+        // 3. Fallback: try as full 24-char ObjectId (legacy URLs)
+        if (!blog) {
+            const potentialId = slug.split('-').pop();
+            if (potentialId && potentialId.length === 24 && mongoose.Types.ObjectId.isValid(potentialId)) {
+                blog = await Blog.findById(potentialId).lean();
+            }
+        }
 
         if (!blog) {
             return res.status(404).json({
@@ -139,8 +171,24 @@ export const getBlogBySlug = async (req, res, next) => {
             });
         }
 
+        // Safe populate — skip if authorId is not a valid ObjectId
+        if (blog.authorId && mongoose.Types.ObjectId.isValid(blog.authorId)) {
+            blog = await Blog.populate(blog, { path: 'authorId', select: 'username displayName photoURL' });
+        }
+
+        // Backfill slug if missing (so future lookups are fast)
+        if (!blog.slug) {
+            const baseSlug = blog.title
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)/g, '');
+            const newSlug = `${baseSlug}-${blog._id.toString().slice(-6)}`;
+            await Blog.updateOne({ _id: blog._id }, { $set: { slug: newSlug } });
+            blog.slug = newSlug;
+        }
+
         // Increment views
-        await incrementViews(id);
+        await incrementViews(blog._id);
         blog.views = (blog.views || 0) + 1;
 
         res.status(200).json({
@@ -148,10 +196,10 @@ export const getBlogBySlug = async (req, res, next) => {
             data: blog
         });
     } catch (error) {
-        // If ID is invalid ObjectId, handle specific error or let global handler catch
         next(error);
     }
 };
+
 
 // @desc    Update blog
 // @route   PUT /api/blogs/:id

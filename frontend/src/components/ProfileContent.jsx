@@ -187,7 +187,10 @@ export default function ProfileContent({ onMessage }) {
             }
             setIsEditing(false);
         } catch (err) {
-            setError(err.message);
+            // Don't set error state here - that triggers the 'Profile Unavailable' error screen
+            // Instead, show inline feedback
+            console.error('Profile update error:', err.message);
+            alert(err.message || 'Failed to update profile');
         } finally {
             setLoading(false);
         }
@@ -198,7 +201,7 @@ export default function ProfileContent({ onMessage }) {
         if (!file) return;
         try {
             const data = await uploadAvatar(file);
-            setProfile({ ...profile, avatar: data.avatar });
+            setProfile({ ...profile, avatar: data.avatar, photoURL: data.avatar });
             // Update global context to reflect new avatar immediately
             if (currentUser) {
                 setCurrentUser({ ...currentUser, photoURL: data.avatar });
@@ -567,7 +570,7 @@ export default function ProfileContent({ onMessage }) {
                                 {isOwnProfile && (
                                     <div className={`p-3 rounded-lg border flex items-center gap-3 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
                                         <img
-                                            src={profile.avatar || `https://ui-avatars.com/api/?name=${profile.displayName}`}
+                                            src={profile.avatar || profile.photoURL || `https://ui-avatars.com/api/?name=${profile.displayName}`}
                                             className="w-8 h-8 rounded-full"
                                             alt="Avatar"
                                         />
@@ -583,9 +586,11 @@ export default function ProfileContent({ onMessage }) {
                                     activity.map((item, index) => (
                                         <div key={index} className={`p-4 rounded-lg border ${isDark ? 'border-slate-800' : 'border-gray-100'}`}>
                                             <div className="flex gap-2 mb-2">
-                                                <div className="w-6 h-6 rounded-full bg-scribe-green text-white flex items-center justify-center text-[10px]">
-                                                    {profile.displayName?.charAt(0).toUpperCase()}
-                                                </div>
+                                                <img
+                                                    src={profile.avatar || profile.photoURL || `https://ui-avatars.com/api/?name=${profile.displayName}`}
+                                                    alt={profile.displayName}
+                                                    className="w-6 h-6 rounded-full object-cover"
+                                                />
                                                 <div>
                                                     <p className={`text-xs font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
                                                         {item.type === 'post' ? 'Posted' : 'Commented'} <span className="text-gray-400">· {new Date(item.createdAt).toLocaleDateString()}</span>

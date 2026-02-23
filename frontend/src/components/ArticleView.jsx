@@ -246,15 +246,26 @@ export default function ArticleView({
 
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <img
-                                            src={article.authorImage || "https://ui-avatars.com/api/?name=" + article.author}
-                                            alt={article.author}
-                                            className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-sm"
-                                        />
+                                        {/* Author avatar — falls back through multiple field names */}
+                                        {(() => {
+                                            const avatarSrc =
+                                                article.authorImage ||
+                                                article.authorPhotoURL ||
+                                                article.authorId?.photoURL ||
+                                                `https://ui-avatars.com/api/?name=${encodeURIComponent(article.author || article.authorName || 'Author')}&background=6B7280&color=fff`;
+                                            return (
+                                                <img
+                                                    src={avatarSrc}
+                                                    alt={article.author || article.authorName || 'Author'}
+                                                    className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-sm"
+                                                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=A`; }}
+                                                />
+                                            );
+                                        })()}
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                                    {article.author}
+                                                    {article.author || article.authorName || article.authorId?.displayName || 'Anonymous'}
                                                 </h3>
                                                 <button
                                                     onClick={() => setIsFollowing(!isFollowing)}
@@ -264,9 +275,16 @@ export default function ArticleView({
                                                 </button>
                                             </div>
                                             <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                <span>{article.readTime || '5 min read'}</span>
+                                                {/* readTime is a number from DB, format it nicely */}
+                                                <span>{article.readTime ? `${article.readTime} min read` : '5 min read'}</span>
                                                 <span className="mx-2">·</span>
-                                                <span>{article.date ? format(new Date(article.date), 'MMM d, yyyy') : 'Recently'}</span>
+                                                <span>
+                                                    {(() => {
+                                                        const d = article.date || article.publishedAt || article.createdAt;
+                                                        try { return d ? format(new Date(d), 'MMM d, yyyy') : 'Recently'; }
+                                                        catch { return 'Recently'; }
+                                                    })()}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
