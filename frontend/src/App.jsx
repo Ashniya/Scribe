@@ -8,6 +8,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
 import About from './pages/About';
+import Contact from './pages/Contact';
 import LoginPromptModal from './components/LoginPromptModal'
 // import admin from 'firebase-admin';
 function App() {
@@ -21,6 +22,9 @@ function App() {
 
             {/* About page */}
             <Route path="/about" element={<About />} />
+
+            {/* Contact page */}
+            <Route path="/contact" element={<Contact />} />
 
             {/* Login route - only accessible when NOT logged in */}
             <Route
