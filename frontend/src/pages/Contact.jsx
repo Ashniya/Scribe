@@ -171,11 +171,10 @@ const Contact = () => {
                   type="submit"
                   disabled={isSubmitting}
                   className={`w-full flex items-center justify-center px-6 py-3 rounded-xl font-semibold transition 
-                  ${
-                    isSubmitting
+                  ${isSubmitting
                       ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
                       : "bg-[#93a377] dark:bg-scribe-sage hover:bg-[#7f905f] dark:hover:bg-scribe-green text-white"
-                  }`}
+                    }`}
                 >
                   {isSubmitting ? (
                     "Sending..."

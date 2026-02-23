@@ -215,8 +215,8 @@ export const updateBlogPost = async (req, res, next) => {
             });
         }
 
-        // Make sure user is blog owner
-        if (blog.authorId !== req.user._id) {
+        // Make sure user is blog owner (convert both to string to avoid ObjectId mismatch)
+        if (blog.authorId.toString() !== req.user._id.toString()) {
             return res.status(401).json({
                 success: false,
                 message: 'Not authorized to update this blog'
@@ -248,8 +248,8 @@ export const deleteBlogPost = async (req, res, next) => {
             });
         }
 
-        // Make sure user is blog owner
-        if (blog.authorId !== req.user._id) {
+        // Make sure user is blog owner (convert both to string to avoid ObjectId mismatch)
+        if (blog.authorId.toString() !== req.user._id.toString()) {
             return res.status(401).json({
                 success: false,
                 message: 'Not authorized to delete this blog'

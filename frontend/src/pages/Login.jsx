@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import floralImage from '../assets/hand_painted_floral_watercolour_design_2801.jpg';
@@ -7,6 +7,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   updateProfile
 } from 'firebase/auth';
@@ -24,6 +26,26 @@ export default function LoginPage() {
   });
 
   const navigate = useNavigate();
+
+  // Handle redirect result on mount (fallback from popup → redirect)
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          const token = await result.user.getIdToken();
+          await fetch('http://localhost:5000/api/auth/me', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+          });
+          navigate('/dashboard');
+        }
+      } catch (err) {
+        // Ignore — no redirect was in progress
+      }
+    };
+    handleRedirectResult();
+  }, []);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -107,49 +129,39 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
+    const googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+
     try {
-      const googleProvider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, googleProvider);
-
-      console.log('✅ Google sign-in successful:', result.user.uid);
-
-      // Get Firebase ID token
       const token = await result.user.getIdToken();
-
-      // Create or sync user in MongoDB via backend
       const mongoResponse = await fetch('http://localhost:5000/api/auth/me', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
-
       const mongoData = await mongoResponse.json();
-
-      if (!mongoResponse.ok) {
-        throw new Error(mongoData.message || 'Failed to sync user');
-      }
-
-      console.log('✅ User synced with MongoDB:', mongoData.user);
+      if (!mongoResponse.ok) throw new Error(mongoData.message || 'Failed to sync user');
       navigate('/dashboard');
     } catch (error) {
       console.error('Google sign-in error:', error);
 
-      switch (error.code) {
-        case 'auth/popup-closed-by-user':
-          setError('Sign-in popup was closed. Please try again.');
-          break;
-        case 'auth/popup-blocked':
-          setError('Popup was blocked by browser. Please allow popups and try again.');
-          break;
-        case 'auth/account-exists-with-different-credential':
-          setError('An account already exists with this email using a different sign-in method.');
-          break;
-        default:
-          setError(error.message || 'Google sign-in failed. Please try again.');
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+        // Fallback: use redirect flow if popup was blocked
+        try {
+          await signInWithRedirect(auth, new GoogleAuthProvider());
+          // Page will redirect; result handled in useEffect above
+          return;
+        } catch (redirectErr) {
+          setError('Could not open Google sign-in. Please allow popups and try again.');
+        }
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in window was closed. Please try again.');
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        setError('An account already exists with this email using a different sign-in method.');
+      } else {
+        setError(error.message || 'Google sign-in failed. Please try again.');
       }
-    } finally {
+
       setLoading(false);
     }
   };
