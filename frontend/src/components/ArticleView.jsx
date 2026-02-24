@@ -7,7 +7,9 @@ import {
     Bookmark,
     MoreHorizontal,
     Trash2,
-    Send
+    Send,
+    Edit3,
+    Trash
 } from 'lucide-react';
 import { format } from 'date-fns';
 import FloatingReaction from './FloatingReaction';
@@ -21,7 +23,9 @@ export default function ArticleView({
     onSave,
     isLiked,
     isSaved,
-    currentUser
+    currentUser,
+    onEdit,
+    onDelete
 }) {
     // Context for Theme (Lamp functionality)
     const { isDark, setIsDark } = useContext(ThemeContext);
@@ -33,6 +37,7 @@ export default function ArticleView({
     const [isFollowing, setIsFollowing] = useState(false);
     const [loadingComments, setLoadingComments] = useState(false);
     const [isSwinging, setIsSwinging] = useState(false);
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
 
     // Floating reaction state
     const [showLikeReaction, setShowLikeReaction] = useState(false);
@@ -230,9 +235,64 @@ export default function ArticleView({
                                 >
                                     <Share2 className="w-5 h-5" />
                                 </button>
-                                <button className={`p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                    <MoreHorizontal className="w-5 h-5" />
-                                </button>
+
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                                        className={`p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition ${showMoreMenu || isDark ? 'text-gray-400' : 'text-gray-500'}`}
+                                    >
+                                        <MoreHorizontal className="w-5 h-5" />
+                                    </button>
+
+                                    {showMoreMenu && (
+                                        <div className={`absolute right-0 top-full mt-2 w-48 py-2 rounded-xl shadow-xl border transform origin-top-right transition-all animate-fadeIn ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                                            {currentUser && (article.authorEmail === currentUser.email) ? (
+                                                <>
+                                                    <button
+                                                        onClick={() => {
+                                                            console.log('Edit story button clicked in ArticleView');
+                                                            setShowMoreMenu(false);
+                                                            if (onEdit) {
+                                                                console.log('Calling onEdit prop from ArticleView with:', article);
+                                                                onEdit(article);
+                                                            } else {
+                                                                console.warn('onEdit prop is missing in ArticleView');
+                                                            }
+                                                        }}
+                                                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${isDark ? 'text-gray-300 hover:bg-slate-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                                                    >
+                                                        <Edit3 className="w-4 h-4" />
+                                                        Edit story
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            console.log('Delete story button clicked in ArticleView');
+                                                            setShowMoreMenu(false);
+                                                            if (window.confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
+                                                                if (onDelete) onDelete(article._id);
+                                                            }
+                                                        }}
+                                                        className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                    >
+                                                        <Trash className="w-4 h-4" />
+                                                        Delete story
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <button
+                                                    onClick={() => {
+                                                        setShowMoreMenu(false);
+                                                        // Report logic could go here
+                                                        alert('Report submitted. Thank you.');
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${isDark ? 'text-gray-300 hover:bg-slate-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                                                >
+                                                    Report story
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

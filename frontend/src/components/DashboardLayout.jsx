@@ -150,9 +150,24 @@ export default function DashboardLayout({ children }) {
                                             <div className="relative">
                                                 <button
                                                     onClick={() => setShowProfileMenu(!showProfileMenu)}
-                                                    className="w-8 h-8 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm hover:ring-2 ring-scribe-sage transition-all focus:outline-none"
+                                                    className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:ring-2 ring-scribe-sage transition-all focus:outline-none"
                                                 >
-                                                    {currentUser?.displayName?.[0] || currentUser?.email?.[0].toUpperCase()}
+                                                    {currentUser?.photoURL ? (
+                                                        <img
+                                                            src={currentUser.photoURL}
+                                                            alt={currentUser?.displayName || 'User'}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                e.target.onerror = null;
+                                                                e.target.style.display = 'none';
+                                                                e.target.parentElement.innerHTML = `<div class="w-full h-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm">${currentUser?.displayName?.[0] || currentUser?.email?.[0].toUpperCase()}</div>`;
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm">
+                                                            {currentUser?.displayName?.[0] || currentUser?.email?.[0].toUpperCase()}
+                                                        </div>
+                                                    )}
                                                 </button>
 
                                                 {showProfileMenu && (

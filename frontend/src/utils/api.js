@@ -523,6 +523,18 @@ export const likeBlog = async (blogId) => {
   return apiCall(`/blogs/${blogId}/like`, { method: 'POST' });
 };
 
+export const deleteBlog = async (blogId) => {
+  return apiCall(`/blogs/${blogId}`, { method: 'DELETE' });
+};
+
+export const updateBlog = async (blogId, blogData) => {
+  return apiCall(`/blogs/${blogId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(blogData),
+  });
+};
+
 // ============= COMMENT APIs =============
 
 export const getComments = async (blogId) => {
@@ -579,6 +591,8 @@ export default {
   repostBlog,
   trackReadTime,
   likeBlog,
+  deleteBlog,
+  updateBlog,
   getComments,
   addComment,
   likeComment,

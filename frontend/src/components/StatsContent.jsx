@@ -35,7 +35,7 @@ export default function StatsContent() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await getMyStats();
+                const res = await getMyStats(timeRange);
                 if (res.success) {
                     setStatsData(res.data);
                 }
@@ -46,7 +46,7 @@ export default function StatsContent() {
             }
         };
         fetchStats();
-    }, []);
+    }, [timeRange]);
 
     // Helper for soft text colors
     const textPrimary = isDark ? 'text-white' : 'text-gray-900';
@@ -139,7 +139,7 @@ export default function StatsContent() {
                                 />
                                 <Line
                                     type="monotone"
-                                    dataKey="subscribers"
+                                    dataKey="views"
                                     stroke="#10b981"
                                     strokeWidth={2}
                                     dot={false}
@@ -156,7 +156,7 @@ export default function StatsContent() {
                         </ResponsiveContainer>
                     </div>
                     <p className={`text-xs text-center mt-4 ${textSecondary}`}>
-                        <span className="text-scribe-green font-medium">● Subscribers</span>
+                        <span className="text-scribe-green font-medium">● Views</span>
                         <span className="mx-2">vs</span>
                         <span className="text-slate-400 font-medium">● Reads</span>
                     </p>

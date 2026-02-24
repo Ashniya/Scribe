@@ -8,9 +8,10 @@ import {
     Check, Eye, EyeOff, Mail, AtSign, FileText, Trash2, LogOut, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { uploadAvatar } from '../utils/api';
 
 export default function SettingsPage({ onClose }) {
-    const { currentUser, signOut } = useAuth();
+    const { currentUser, setCurrentUser, signOut } = useAuth();
     const { isDark, setIsDark } = useContext(ThemeContext);
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('account');
@@ -166,6 +167,24 @@ export default function SettingsPage({ onClose }) {
         }
     };
 
+    const handleAvatarUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setSaving(true);
+        try {
+            const data = await uploadAvatar(file);
+            if (data.success && data.avatar) {
+                setCurrentUser(prev => ({ ...prev, photoURL: data.avatar }));
+                showSuccess('Profile picture updated!');
+            }
+        } catch (err) {
+            showError('Failed to upload image. ' + err.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
 
     // --- Styling Classes ---
     const base = isDark ? 'text-white' : 'text-gray-900';
@@ -283,12 +302,31 @@ export default function SettingsPage({ onClose }) {
                         <div className="space-y-4">
                             <h3 className={`text-lg font-bold ${base}`}>Profile picture</h3>
                             <div className="flex items-center justify-between">
-                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white text-2xl font-bold">
-                                    {(currentUser?.displayName?.[0] || currentUser?.email?.[0] || 'U').toUpperCase()}
+                                <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white text-2xl font-bold">
+                                    {currentUser?.photoURL ? (
+                                        <img
+                                            src={currentUser.photoURL}
+                                            alt="Profile"
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center">${(currentUser?.displayName?.[0] || currentUser?.email?.[0] || 'U').toUpperCase()}</div>`;
+                                            }}
+                                        />
+                                    ) : (
+                                        (currentUser?.displayName?.[0] || currentUser?.email?.[0] || 'U').toUpperCase()
+                                    )}
                                 </div>
-                                <button className={`${muted} hover:${base} text-sm`}>
+                                <label className={`${muted} hover:${base} text-sm cursor-pointer`}>
                                     Update
-                                </button>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleAvatarUpload}
+                                        disabled={saving}
+                                    />
+                                </label>
                             </div>
                         </div>
 

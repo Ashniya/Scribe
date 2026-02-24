@@ -19,9 +19,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
-import { createBlog, uploadImage } from '../utils/api';
+import { createBlog, updateBlog, uploadImage } from '../utils/api';
 
-export default function Editor({ onClose, isDark: propIsDark }) {
+export default function Editor({ onClose, isDark: propIsDark, editData }) {
     const { currentUser, mongoUser } = useAuth();
     const themeContext = useContext(ThemeContext);
     const isDark = themeContext ? themeContext.isDark : propIsDark;
@@ -34,7 +34,7 @@ export default function Editor({ onClose, isDark: propIsDark }) {
     const [imagePreview, setImagePreview] = useState(null);
     const [category, setCategory] = useState('General');
     const [tags, setTags] = useState('');
-    const [status, setStatus] = useState('draft');
+    const [status, setStatus] = useState(editData ? 'editing' : 'draft');
     const [error, setError] = useState('');
     const [activeFormats, setActiveFormats] = useState({});
     const [wordCount, setWordCount] = useState(0);
@@ -47,6 +47,31 @@ export default function Editor({ onClose, isDark: propIsDark }) {
         'General', 'Technology', 'Health', 'Writing', 'Productivity',
         'Business', 'Lifestyle', 'Design', 'Programming', 'Science'
     ];
+
+    // ─── Update word/char count ──────────────────────────────────────────────────
+    const updateCounts = useCallback(() => {
+        if (!contentEditableRef.current) return;
+        const text = contentEditableRef.current.innerText || '';
+        const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+        setWordCount(words.length);
+        setCharCount(text.length);
+    }, []);
+
+    // Initialize editor with editData if provided
+    useEffect(() => {
+        if (editData) {
+            setTitle(editData.title || '');
+            setCategory(editData.category || 'General');
+            setTags(editData.tags ? editData.tags.join(', ') : '');
+            if (editData.coverImage) {
+                setImagePreview(editData.coverImage);
+            }
+            if (contentEditableRef.current && editData.content) {
+                contentEditableRef.current.innerHTML = editData.content;
+                updateCounts();
+            }
+        }
+    }, [editData, updateCounts]);
 
     // ─── Selection Management ────────────────────────────────────────────────────
     const savedSelectionRef = useRef(null);
@@ -86,14 +111,6 @@ export default function Editor({ onClose, isDark: propIsDark }) {
         } catch (e) { /* ignore */ }
     }, []);
 
-    // ─── Update word/char count ──────────────────────────────────────────────────
-    const updateCounts = useCallback(() => {
-        if (!contentEditableRef.current) return;
-        const text = contentEditableRef.current.innerText || '';
-        const words = text.trim().split(/\s+/).filter(w => w.length > 0);
-        setWordCount(words.length);
-        setCharCount(text.length);
-    }, []);
 
     // ─── Format handler ──────────────────────────────────────────────────────────
     const handleFormat = useCallback((command, value = null) => {
@@ -191,16 +208,18 @@ export default function Editor({ onClose, isDark: propIsDark }) {
                 excerpt: contentEditableRef.current.innerText.slice(0, 150) + '...',
                 category: category || 'General',
                 tags: tags.split(',').map(t => t.trim()).filter(t => t),
-                coverImage: uploadedImageUrl,
+                coverImage: uploadedImageUrl || (editData ? editData.coverImage : null),
             };
 
-            const result = await createBlog(blogData);
+            const result = editData
+                ? await updateBlog(editData._id, blogData)
+                : await createBlog(blogData);
 
             if (result.success) {
                 setStatus('published');
                 setTimeout(() => { onClose(); window.location.reload(); }, 1500);
             } else {
-                throw new Error(result.message || 'Failed to publish');
+                throw new Error(result.message || (editData ? 'Failed to update' : 'Failed to publish'));
             }
         } catch (err) {
             console.error('Publish error:', err);
@@ -283,11 +302,11 @@ export default function Editor({ onClose, isDark: propIsDark }) {
                                 disabled={status === 'publishing' || status === 'published'}
                                 className="px-5 py-2 bg-gradient-to-r from-green-600 to-emerald-500 text-white rounded-full text-sm font-semibold hover:from-green-700 hover:to-emerald-600 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/30 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2">
                                 {status === 'publishing' ? (
-                                    <><Loader className="w-4 h-4 animate-spin" /> Publishing...</>
+                                    <><Loader className="w-4 h-4 animate-spin" /> {editData ? 'Updating...' : 'Publishing...'}</>
                                 ) : status === 'published' ? (
-                                    <><div className="w-2 h-2 bg-white rounded-full animate-ping" /> Published!</>
+                                    <><div className="w-2 h-2 bg-white rounded-full animate-ping" /> {editData ? 'Updated!' : 'Published!'}</>
                                 ) : (
-                                    <><Send className="w-3.5 h-3.5" /> Publish</>
+                                    <><Send className="w-3.5 h-3.5" /> {editData ? 'Update' : 'Publish'}</>
                                 )}
                             </button>
                             <button className={`p-2 rounded-full transition-all duration-200 hover:scale-110 ${isDark ? 'text-gray-400 hover:bg-slate-700' : 'text-gray-600 hover:bg-gray-100'}`}>

@@ -55,9 +55,11 @@ export default function ProfileContent({ onMessage }) {
     const [activeTab, setActiveTab] = useState('activity');
     const [isEditing, setIsEditing] = useState(false);
     const [myPosts, setMyPosts] = useState([]);
+    const [likedPosts, setLikedPosts] = useState([]);
     const [isFollowing, setIsFollowing] = useState(false);
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [activity, setActivity] = useState([]);
+    const [loadingTabs, setLoadingTabs] = useState(false);
 
     const isOwnProfile = !username || (currentUser && currentUser.username === username);
 
@@ -85,6 +87,8 @@ export default function ProfileContent({ onMessage }) {
         }
         if (profile) {
             fetchActivity();
+            fetchUserBlogs(profile._id);
+            fetchLikedBlogs(profile._id);
         }
     }, [profile, currentUser]);
 
@@ -130,11 +134,6 @@ export default function ProfileContent({ onMessage }) {
                     linkedin: data.user.socialLinks?.linkedin || '',
                     website: data.user.socialLinks?.website || ''
                 });
-                fetchMyPosts(); // Fetch posts for self
-            } else {
-                // Fetch posts for other user (TODO: Add API for this)
-                // For now, clear posts
-                setMyPosts([]);
             }
 
         } catch (err) {
@@ -145,20 +144,30 @@ export default function ProfileContent({ onMessage }) {
         }
     };
 
-    const fetchMyPosts = async () => {
+    const fetchUserBlogs = async (userId) => {
+        setLoadingTabs(true);
         try {
-            const token = localStorage.getItem('token');
-            if (token) {
-                const res = await fetch('http://localhost:5000/api/blogs/user/my-blogs', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (data.success) {
-                    setMyPosts(data.data);
-                }
+            const res = await fetch(`http://localhost:5000/api/blogs/user/${userId}/blogs`);
+            const data = await res.json();
+            if (data.success) {
+                setMyPosts(data.data);
             }
         } catch (err) {
-            console.error('Error fetching posts:', err);
+            console.error('Error fetching blogs:', err);
+        } finally {
+            setLoadingTabs(false);
+        }
+    };
+
+    const fetchLikedBlogs = async (userId) => {
+        try {
+            const res = await fetch(`http://localhost:5000/api/blogs/user/${userId}/liked`);
+            const data = await res.json();
+            if (data.success) {
+                setLikedPosts(data.data);
+            }
+        } catch (err) {
+            console.error('Error fetching liked blogs:', err);
         }
     };
 
@@ -557,94 +566,137 @@ export default function ProfileContent({ onMessage }) {
                                     }`}
                             >
                                 {tab}
-                                {tab === 'Reads' && isOwnProfile && ' (12)'}
+                                {tab === 'Posts' && myPosts.length > 0 && ` (${myPosts.length})`}
+                                {tab === 'Likes' && likedPosts.length > 0 && ` (${likedPosts.length})`}
                             </button>
                         ))}
                     </div>
 
                     {/* Tab Content */}
                     <div className="space-y-4 pb-20">
-                        {activeTab === 'activity' && (
-                            <div className="space-y-4">
-                                {/* Activity Input - Only for own profile */}
-                                {isOwnProfile && (
-                                    <div className={`p-3 rounded-lg border flex items-center gap-3 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
-                                        <img
-                                            src={profile.avatar || profile.photoURL || `https://ui-avatars.com/api/?name=${profile.displayName}`}
-                                            className="w-8 h-8 rounded-full"
-                                            alt="Avatar"
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="What's on your mind?"
-                                            className={`flex-1 bg-transparent border-none text-sm focus:ring-0 ${isDark ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'}`}
-                                        />
-                                    </div>
-                                )}
-
-                                {activity.length > 0 ? (
-                                    activity.map((item, index) => (
-                                        <div key={index} className={`p-4 rounded-lg border ${isDark ? 'border-slate-800' : 'border-gray-100'}`}>
-                                            <div className="flex gap-2 mb-2">
+                        {loadingTabs ? (
+                            <div className="flex justify-center py-12">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-scribe-green"></div>
+                            </div>
+                        ) : (
+                            <>
+                                {activeTab === 'activity' && (
+                                    <div className="space-y-4">
+                                        {/* Activity Input - Only for own profile */}
+                                        {isOwnProfile && (
+                                            <div className={`p-3 rounded-lg border flex items-center gap-3 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
                                                 <img
                                                     src={profile.avatar || profile.photoURL || `https://ui-avatars.com/api/?name=${profile.displayName}`}
-                                                    alt={profile.displayName}
-                                                    className="w-6 h-6 rounded-full object-cover"
+                                                    className="w-8 h-8 rounded-full"
+                                                    alt="Avatar"
                                                 />
-                                                <div>
-                                                    <p className={`text-xs font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                                                        {item.type === 'post' ? 'Posted' : 'Commented'} <span className="text-gray-400">· {new Date(item.createdAt).toLocaleDateString()}</span>
+                                                <input
+                                                    type="text"
+                                                    placeholder="What's on your mind?"
+                                                    className={`flex-1 bg-transparent border-none text-sm focus:ring-0 ${isDark ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'}`}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {activity.length > 0 ? (
+                                            activity.map((item, index) => (
+                                                <div key={index} className={`p-4 rounded-lg border ${isDark ? 'border-slate-800' : 'border-gray-100'}`}>
+                                                    <div className="flex gap-2 mb-2">
+                                                        <img
+                                                            src={profile.avatar || profile.photoURL || `https://ui-avatars.com/api/?name=${profile.displayName}`}
+                                                            alt={profile.displayName}
+                                                            className="w-6 h-6 rounded-full object-cover"
+                                                        />
+                                                        <div>
+                                                            <p className={`text-xs font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                                                                {item.type === 'post' ? 'Posted' : 'Commented'} <span className="text-gray-400">· {new Date(item.createdAt).toLocaleDateString()}</span>
+                                                            </p>
+                                                            {item.type === 'comment' && item.data.blogId && (
+                                                                <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                                    on <span className="font-medium">{item.data.blogId.title}</span>
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <p className={`mb-3 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                                        {item.type === 'post' ? item.data.title : item.data.content}
                                                     </p>
-                                                    {item.type === 'comment' && item.data.blogId && (
-                                                        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                                                            on <span className="font-medium">{item.data.blogId.title}</span>
-                                                        </p>
+                                                    {item.type === 'post' && (
+                                                        <div className={`flex items-center gap-4 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                            <span className="flex items-center gap-1"><span className="text-red-500">♥</span> {item.data.likescount || 0}</span>
+                                                            <span>💬 {item.data.commentscount || 0}</span>
+                                                        </div>
                                                     )}
                                                 </div>
+                                            ))
+                                        ) : (
+                                            <div className={`text-center py-8 text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                No recent activity.
                                             </div>
-                                            <p className={`mb-3 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                                                {item.type === 'post' ? item.data.title : item.data.content}
-                                            </p>
-                                            {item.type === 'post' && (
-                                                <div className={`flex items-center gap-4 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                    <span className="flex items-center gap-1"><span className="text-red-500">♥</span> {item.data.likescount || 0}</span>
-                                                    <span>💬 {item.data.commentscount || 0}</span>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTab === 'posts' && (
+                                    <div>
+                                        {myPosts.length > 0 ? (
+                                            myPosts.map(post => (
+                                                <div key={post._id} className={`p-4 rounded-lg border mb-3 cursor-pointer hover:shadow-md transition ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                                                    <h3 className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{post.title}</h3>
+                                                    <p className={`mb-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{post.excerpt}</p>
+                                                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                        {new Date(post.publishedAt).toLocaleDateString()} · {post.readTime} min read
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className={`text-center py-8 text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                        No recent activity.
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {activeTab === 'posts' && (
-                            <div>
-                                {myPosts.length > 0 ? (
-                                    myPosts.map(post => (
-                                        <div key={post._id} className={`p-4 rounded-lg border mb-3 cursor-pointer hover:shadow-md transition ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
-                                            <h3 className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{post.title}</h3>
-                                            <p className={`mb-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{post.excerpt}</p>
-                                            <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                                                {new Date(post.publishedAt).toLocaleDateString()} · {post.readTime} min read
+                                            ))
+                                        ) : (
+                                            <div className={`text-center py-8 text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                No posts yet.
                                             </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className={`text-center py-8 text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                        No posts yet.
+                                        )}
                                     </div>
                                 )}
-                            </div>
-                        )}
 
-                        {(activeTab === 'likes' || activeTab === 'reads') && (
-                            <div className={`text-center py-8 text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                No {activeTab} yet.
-                            </div>
+                                {activeTab === 'likes' && (
+                                    <div>
+                                        {likedPosts.length > 0 ? (
+                                            likedPosts.map(post => (
+                                                <div
+                                                    key={post._id}
+                                                    onClick={() => navigate(`/article/${post._id}`)}
+                                                    className={`p-4 rounded-lg border mb-3 cursor-pointer hover:shadow-md transition ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}
+                                                >
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <img
+                                                            src={post.authorId?.photoURL || `https://ui-avatars.com/api/?name=${post.authorId?.displayName || 'User'}`}
+                                                            className="w-5 h-5 rounded-full"
+                                                            alt="Author"
+                                                        />
+                                                        <span className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                            {post.authorId?.displayName || 'Unknown Author'}
+                                                        </span>
+                                                    </div>
+                                                    <h3 className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{post.title}</h3>
+                                                    <p className={`mb-2 text-sm line-clamp-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{post.excerpt}</p>
+                                                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                        {new Date(post.publishedAt || post.createdAt).toLocaleDateString()} · {post.readTime || 1} min read
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className={`text-center py-8 text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                No liked posts yet.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTab === 'reads' && (
+                                    <div className={`text-center py-8 text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                        No reads yet.
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

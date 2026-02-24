@@ -83,6 +83,8 @@ dotenv.config({ path: '.env.backend' });
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import './config/firebase-admin.js';
 import { setupSocket } from './config/socket.js';
@@ -100,6 +102,10 @@ import errorHandler from './middleware/error.middleware.js';
 connectDB();
 
 const app = express();
+
+// Path for static files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Create HTTP server for Socket.io
 const httpServer = createServer(app);
@@ -135,6 +141,9 @@ app.options('*', cors(corsOptions)); // Handle preflight for all routes
 // Body parser middleware — 50mb limit to support base64 embedded images in blog content
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 app.get('/', (req, res) => {

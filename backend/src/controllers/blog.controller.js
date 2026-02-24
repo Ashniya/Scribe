@@ -96,6 +96,43 @@ export const getMyBlogs = async (req, res, next) => {
     }
 };
 
+// @desc    Get blogs by user ID
+// @route   GET /api/blogs/user/:userId/blogs
+// @access  Public
+export const getBlogsByUserId = async (req, res, next) => {
+    try {
+        const blogs = await findBlogsByAuthor(req.params.userId);
+
+        res.status(200).json({
+            success: true,
+            count: blogs.length,
+            data: blogs
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get liked blogs by user ID
+// @route   GET /api/blogs/user/:userId/liked
+// @access  Public
+export const getLikedBlogsByUserId = async (req, res, next) => {
+    try {
+        const blogs = await Blog.find({ likes: req.params.userId })
+            .populate('authorId', 'username displayName photoURL')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        res.status(200).json({
+            success: true,
+            count: blogs.length,
+            data: blogs
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Get single blog
 // @route   GET /api/blogs/:id
 // @access  Public
@@ -215,8 +252,15 @@ export const updateBlogPost = async (req, res, next) => {
             });
         }
 
-        // Make sure user is blog owner (convert both to string to avoid ObjectId mismatch)
-        if (blog.authorId.toString() !== req.user._id.toString()) {
+        // Make sure user is blog owner
+        // Extract ID from potentially populated authorId
+        const blogAuthorId = (blog.authorId?._id || blog.authorId).toString();
+        const userFirebaseUid = req.user.firebaseUid || req.user.uid;
+        const isOwner = blogAuthorId === req.user._id.toString() ||
+            (userFirebaseUid && blogAuthorId === userFirebaseUid);
+
+        if (!isOwner) {
+            console.log('Ownership check failed:', { blogAuthorId, userId: req.user._id, firebaseUid: userFirebaseUid });
             return res.status(401).json({
                 success: false,
                 message: 'Not authorized to update this blog'
@@ -248,8 +292,14 @@ export const deleteBlogPost = async (req, res, next) => {
             });
         }
 
-        // Make sure user is blog owner (convert both to string to avoid ObjectId mismatch)
-        if (blog.authorId.toString() !== req.user._id.toString()) {
+        // Make sure user is blog owner
+        // Extract ID from potentially populated authorId
+        const blogAuthorId = (blog.authorId?._id || blog.authorId).toString();
+        const userFirebaseUid = req.user.firebaseUid || req.user.uid;
+        const isOwner = blogAuthorId === req.user._id.toString() ||
+            (userFirebaseUid && blogAuthorId === userFirebaseUid);
+
+        if (!isOwner) {
             return res.status(401).json({
                 success: false,
                 message: 'Not authorized to delete this blog'

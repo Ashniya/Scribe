@@ -12,7 +12,9 @@ import {
     getStatsForUser,
     repostBlogPost,
     trackReadTimeController,
-    getBlogBySlug
+    getBlogBySlug,
+    getBlogsByUserId,
+    getLikedBlogsByUserId
 } from '../controllers/blog.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 
@@ -23,6 +25,8 @@ router.get('/slug/:slug', getBlogBySlug);
 // Protected specific routes (MUST come before /:id)
 router.get('/user/my-blogs', protect, getMyBlogs);
 router.get('/user/stats', protect, getStatsForUser);
+router.get('/user/:userId/blogs', getBlogsByUserId);
+router.get('/user/:userId/liked', getLikedBlogsByUserId);
 
 // Public single blog route
 router.get('/:id', getBlog);

@@ -207,6 +207,7 @@ export default function Dashboard({ initialSection = 'home' }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [followingAuthor, setFollowingAuthor] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [editingBlog, setEditingBlog] = useState(null);
 
   // Get the correct avatar URL - prioritize MongoDB user data
   const getAvatarUrl = () => {
@@ -382,6 +383,13 @@ export default function Dashboard({ initialSection = 'home' }) {
       console.error('Delete error:', error);
       alert('Failed to delete story. Please try again.');
     }
+  };
+
+  const handleEdit = (blog) => {
+    console.log('handleEdit called with blog:', blog);
+    setEditingBlog(blog);
+    setSelectedArticle(null); // Clear viewing state to show editor
+    setShowEditor(true);
   };
 
   useEffect(() => {
@@ -664,6 +672,7 @@ export default function Dashboard({ initialSection = 'home' }) {
                     onFollowAuthor={setFollowingAuthor}
                     currentUser={currentUser}
                     onDelete={handleDelete}
+                    onEdit={() => handleEdit(blog)}
                     setShowLoginPrompt={setShowLoginPrompt}
                   />
                 ))}
@@ -743,6 +752,19 @@ export default function Dashboard({ initialSection = 'home' }) {
     }
   };
 
+  if (showEditor) {
+    return (
+      <Editor
+        onClose={() => {
+          setShowEditor(false);
+          setEditingBlog(null);
+        }}
+        isDark={isDark}
+        editData={editingBlog}
+      />
+    );
+  }
+
   if (selectedArticle) {
     return (
       <ArticleView
@@ -755,12 +777,13 @@ export default function Dashboard({ initialSection = 'home' }) {
         isLiked={Boolean((mongoUser?._id || currentUser?._id) && selectedArticle.likes?.map(String).includes(String(mongoUser?._id || currentUser?._id)))}
         isSaved={savedBlogs.includes(selectedArticle._id)}
         currentUser={currentUser}
+        onEdit={(blog) => handleEdit(blog || selectedArticle)}
+        onDelete={(id) => {
+          handleDelete(id || selectedArticle._id);
+          setSelectedArticle(null);
+        }}
       />
     );
-  }
-
-  if (showEditor) {
-    return <Editor onClose={() => setShowEditor(false)} isDark={isDark} />;
   }
 
   if (showOnboarding) {
@@ -963,6 +986,11 @@ export default function Dashboard({ initialSection = 'home' }) {
                               src={getAvatarUrl()}
                               alt={getDisplayName()}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center text-scribe-green font-bold text-lg">${getInitials()}</div>`;
+                              }}
                             />
                           ) : (
                             <div className="w-full h-full rounded-full bg-gradient-to-br from-scribe-sage to-scribe-mint flex items-center justify-center text-white font-semibold text-sm">
@@ -1127,6 +1155,7 @@ export default function Dashboard({ initialSection = 'home' }) {
                             )}
                             {filteredBlogs.map((blog) => (
                               <ArticleCard key={blog._id} article={{
+                                _id: blog._id,
                                 id: blog._id,
                                 title: blog.title,
                                 excerpt: blog.excerpt,
@@ -1147,7 +1176,7 @@ export default function Dashboard({ initialSection = 'home' }) {
                               }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => {
                                 // Navigate to article page using simple ID route
                                 navigate(`/article/${blog._id}`);
-                              }} onFollowAuthor={setFollowingAuthor} currentUser={currentUser} onDelete={handleDelete} setShowLoginPrompt={setShowLoginPrompt} />
+                              }} onFollowAuthor={setFollowingAuthor} currentUser={currentUser} onDelete={handleDelete} onEdit={() => handleEdit(blog)} setShowLoginPrompt={setShowLoginPrompt} />
                             ))}
                           </>
                         );
@@ -1278,7 +1307,7 @@ function NavItem({ icon: Icon, label, active, badge, onClick, isDark, iconOnly, 
   );
 }
 
-function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArticleClick, onFollowAuthor, currentUser, onDelete, setShowLoginPrompt }) {
+function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArticleClick, onFollowAuthor, currentUser, onDelete, onEdit, setShowLoginPrompt }) {
   const [showMenu, setShowMenu] = useState(false);
   const navigate = useNavigate();
 
@@ -1448,19 +1477,36 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
                 {/* Dropdown Menu */}
                 {showMenu && (
                   <div className="absolute right-0 top-8 z-20 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 py-1 anim-folder-open" onClick={(e) => e.stopPropagation()}>
-                    {currentUser && (article.authorEmail === currentUser.email || article.authorEmail === currentUser.email) ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowMenu(false);
-                          if (window.confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
-                            if (onDelete) onDelete(article.id);
-                          }
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Delete story
-                      </button>
+                    {currentUser && (article.authorEmail === currentUser.email) ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            console.log('Edit story button clicked in ArticleView');
+                            setShowMenu(false);
+                            if (onEdit) {
+                              console.log('Calling onEdit prop from ArticleView');
+                              onEdit();
+                            } else {
+                              console.warn('onEdit prop is missing in ArticleView');
+                            }
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${isDark ? 'text-gray-300 hover:bg-slate-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Edit story
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowMenu(false);
+                            if (window.confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
+                              if (onDelete) onDelete(article._id);
+                            }
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete story
+                        </button>
+                      </>
                     ) : null}
                     {currentUser && article.authorEmail !== currentUser.email && (
                       <>
