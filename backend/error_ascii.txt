@@ -1,0 +1,61 @@
+node : file:///C:/Us
+ers/M%20S%20I/Scribe
+/backend/src/models/
+Blog.js:71
+At line:1 char:1
++ node 
+src/server.js > 
+error.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo  
+            : NotS  
+  pecified: (file   
+ :///C:/User...d    
+els/Blog.js:71:    
+String) [], Rem    
+oteException
+    + FullyQualifie 
+   dErrorId : Nati  
+  veCommandError
+ 
+<<<<<<< HEAD
+  ^^
+
+SyntaxError: 
+Unexpected token 
+'<<'
+    at compileSource
+TextModule (node:int
+ernal/modules/esm/ut
+ils:346:16)
+    at ModuleLoader.
+moduleStrategy (node
+:internal/modules/es
+m/translators:107:18
+)
+    at #translate (n
+ode:internal/modules
+/esm/loader:546:20)
+    at afterLoad (no
+de:internal/modules/
+esm/loader:596:29)
+    at ModuleLoader.
+loadAndTranslate (no
+de:internal/modules/
+esm/loader:601:12)
+    at 
+#createModuleJob (no
+de:internal/modules/
+esm/loader:624:36)
+    at #getJobFromRe
+solveResult (node:in
+ternal/modules/esm/l
+oader:343:34)
+    at ModuleLoader.
+getModuleJobForImpor
+t (node:internal/mod
+ules/esm/loader:311:
+41)
+
+Node.js v22.20.0

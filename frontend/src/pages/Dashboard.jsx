@@ -268,19 +268,52 @@ export default function Dashboard({ initialSection = 'home' }) {
       });
       const data = await res.json();
       if (data.success) {
+        const userIdStr = mongoUser?._id ? String(mongoUser._id) : null;
+
         setBlogs(prev => prev.map(b =>
           b._id === blogId
             ? {
-              ...b, likes: data.data.isLiked
-                ? [...(b.likes || []), mongoUser?._id]
-                : (b.likes || []).filter(id => id !== mongoUser?._id),
-              likescount: data.data.likes
+              ...b,
+              likes: data.data.isLiked
+                ? [...(b.likes || []), userIdStr].filter((v, i, a) => v && String(a.indexOf(v)) === String(i))
+                : (b.likes || []).filter(id => String(id) !== userIdStr),
+              likescount: data.data.likes,
+              claps: data.data.likes // Ensure count stays in sync
             }
             : b
         ));
+
+        // CRITICAL: Update selectedArticle so the modal reflects the new state immediately
+        if (selectedArticle && selectedArticle._id === blogId) {
+          setSelectedArticle(prev => ({
+            ...prev,
+            likes: data.data.isLiked
+              ? [...(prev.likes || []), userIdStr].filter((v, i, a) => v && String(a.indexOf(v)) === String(i))
+              : (prev.likes || []).filter(id => String(id) !== userIdStr),
+            likescount: data.data.likes,
+            claps: data.data.likes // Sync claps field used in ArticleView
+          }));
+        }
+        loadStats();
       }
     } catch (error) {
       console.error('Like error:', error);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const res = await fetch('http://localhost:5000/api/blogs/user/stats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStats(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load stats:', err);
     }
   };
 
@@ -319,6 +352,8 @@ export default function Dashboard({ initialSection = 'home' }) {
             isSaved: res.data.isSaved
           }));
         }
+        // Refresh local user stats after a save
+        loadStats();
       }
     } catch (err) {
       console.error('Save error:', err);
@@ -368,13 +403,7 @@ export default function Dashboard({ initialSection = 'home' }) {
             setMyBlogs(myBlogsData.data);
           }
 
-          const statsRes = await fetch('http://localhost:5000/api/blogs/user/stats', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const statsData = await statsRes.json();
-          if (statsData.success) {
-            setStats(statsData.data);
-          }
+          await loadStats();
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -384,7 +413,7 @@ export default function Dashboard({ initialSection = 'home' }) {
     };
 
     fetchData();
-  }, [showEditor]);
+  }, [showEditor, currentUser]);
 
   useEffect(() => {
     if (blogs.length > 0) {
@@ -431,7 +460,13 @@ export default function Dashboard({ initialSection = 'home' }) {
   const renderSectionContent = () => {
     switch (activeSection) {
       case 'library':
-        return <LibrarySection blogs={blogs} isDark={isDark} onArticleClick={setSelectedArticle} />;
+        return <LibrarySection blogs={blogs} isDark={isDark} onArticleClick={(blog) => {
+          if (!currentUser) {
+            setShowLoginPrompt(true);
+          } else {
+            setSelectedArticle(blog);
+          }
+        }} />;
       case 'profile':
         return <ProfileContent onMessage={handleMessageUser} />;
       case 'messages':
@@ -607,7 +642,6 @@ export default function Dashboard({ initialSection = 'home' }) {
                       title: blog.title,
                       excerpt: blog.excerpt,
                       author: blog.authorName,
-                      author: blog.authorName,
                       authorId: blog.authorId?._id || blog.authorId,
                       authorUsername: blog.authorId?.username,
                       authorImage: blog.authorId?.photoURL || blog.authorPhotoURL || null,
@@ -630,6 +664,7 @@ export default function Dashboard({ initialSection = 'home' }) {
                     onFollowAuthor={setFollowingAuthor}
                     currentUser={currentUser}
                     onDelete={handleDelete}
+                    setShowLoginPrompt={setShowLoginPrompt}
                   />
                 ))}
               </div>
@@ -663,7 +698,6 @@ export default function Dashboard({ initialSection = 'home' }) {
                       title: blog.title,
                       excerpt: blog.excerpt,
                       author: blog.authorName,
-                      author: blog.authorName,
                       authorId: blog.authorId?._id || blog.authorId,
                       authorUsername: blog.authorId?.username,
                       authorImage: blog.authorId?.photoURL || blog.authorPhotoURL || null,
@@ -686,6 +720,7 @@ export default function Dashboard({ initialSection = 'home' }) {
                     onFollowAuthor={setFollowingAuthor}
                     currentUser={currentUser}
                     onDelete={handleDelete}
+                    setShowLoginPrompt={setShowLoginPrompt}
                   />
                 ))}
               </div>
@@ -717,7 +752,7 @@ export default function Dashboard({ initialSection = 'home' }) {
         onClose={() => setSelectedArticle(null)}
         onLike={() => handleLike(selectedArticle._id)}
         onSave={() => handleSave(selectedArticle._id)}
-        isLiked={selectedArticle.likes?.includes(mongoUser?._id)}
+        isLiked={Boolean((mongoUser?._id || currentUser?._id) && selectedArticle.likes?.map(String).includes(String(mongoUser?._id || currentUser?._id)))}
         isSaved={savedBlogs.includes(selectedArticle._id)}
         currentUser={currentUser}
       />
@@ -764,7 +799,14 @@ export default function Dashboard({ initialSection = 'home' }) {
         />
       )}
 
-      <div className={`min-h-screen ${isDark ? 'dark bg-slate-900' : 'bg-white'} transition-colors duration-300 ${showLoginPrompt ? 'blur-sm pointer-events-none' : ''}`}>
+      <div
+        className={`min-h-screen ${isDark ? 'dark bg-slate-900' : 'bg-white'} transition-colors duration-300 ${showLoginPrompt ? 'blur-sm pointer-events-none' : ''}`}
+        onClick={() => {
+          if (!currentUser) {
+            setShowLoginPrompt(true);
+          }
+        }}
+      >
         <div className="flex">
           {/* Sidebar */}
           <aside className={`w-64 min-h-screen flex flex-col fixed top-0 left-0 border-r transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} z-40 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'}`}>
@@ -778,20 +820,20 @@ export default function Dashboard({ initialSection = 'home' }) {
 
             {/* Navigation */}
             <nav className="flex-1 px-0 py-6">
-              <NavItem icon={Home} label="Home" active={activeSection === 'home'} onClick={() => handleSectionChange('home')} isDark={isDark} />
-              <NavItem icon={BookOpen} label="Library" active={activeSection === 'library'} onClick={() => handleSectionChange('library')} isDark={isDark} />
-              <NavItem icon={Users} label="Profile" active={activeSection === 'profile'} onClick={() => handleSectionChange('profile')} isDark={isDark} />
-              <NavItem icon={PenTool} label="Stories" active={activeSection === 'stories'} onClick={() => handleSectionChange('stories')} isDark={isDark} />
-              <NavItem icon={BarChart3} label="Stats" active={activeSection === 'stats'} onClick={() => handleSectionChange('stats')} isDark={isDark} />
+              <NavItem icon={Home} label="Home" active={activeSection === 'home'} onClick={() => handleSectionChange('home')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
+              <NavItem icon={BookOpen} label="Library" active={activeSection === 'library'} onClick={() => handleSectionChange('library')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
+              <NavItem icon={Users} label="Profile" active={activeSection === 'profile'} onClick={() => handleSectionChange('profile')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
+              <NavItem icon={PenTool} label="Stories" active={activeSection === 'stories'} onClick={() => handleSectionChange('stories')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
+              <NavItem icon={BarChart3} label="Stats" active={activeSection === 'stats'} onClick={() => handleSectionChange('stats')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
 
               <div className={`h-px my-6 ${isDark ? 'bg-slate-700' : 'bg-gray-200'}`}></div>
 
-              <NavItem icon={TrendingUp} label="Following" active={activeSection === 'following'} onClick={() => handleSectionChange('following')} isDark={isDark} />
-              <NavItem icon={Heart} label="Favorites" active={activeSection === 'favorites'} onClick={() => handleSectionChange('favorites')} isDark={isDark} />
-              <NavItem icon={Bookmark} label="Collections" active={activeSection === 'collections'} onClick={() => handleSectionChange('collections')} isDark={isDark} />
-              <NavItem icon={Bell} label="Notifications" active={activeSection === 'notifications'} onClick={() => handleSectionChange('notifications')} isDark={isDark} />
-              <NavItem icon={MessageSquare} label="Messages" active={activeSection === 'messages'} onClick={() => handleSectionChange('messages')} isDark={isDark} />
-              <NavItem icon={Settings} label="Settings" active={activeSection === 'settings'} onClick={() => handleSectionChange('settings')} isDark={isDark} />
+              <NavItem icon={TrendingUp} label="Following" active={activeSection === 'following'} onClick={() => handleSectionChange('following')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
+              <NavItem icon={Heart} label="Favorites" active={activeSection === 'favorites'} onClick={() => handleSectionChange('favorites')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
+              <NavItem icon={Bookmark} label="Collections" active={activeSection === 'collections'} onClick={() => handleSectionChange('collections')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
+              <NavItem icon={Bell} label="Notifications" active={activeSection === 'notifications'} onClick={() => handleSectionChange('notifications')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
+              <NavItem icon={MessageSquare} label="Messages" active={activeSection === 'messages'} onClick={() => handleSectionChange('messages')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
+              <NavItem icon={Settings} label="Settings" active={activeSection === 'settings'} onClick={() => handleSectionChange('settings')} isDark={isDark} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
             </nav>
 
             {/* User Info & Logout */}
@@ -1100,12 +1142,12 @@ export default function Dashboard({ initialSection = 'home' }) {
                                 claps: blog.likes?.length || blog.likescount || 0,
                                 comments: blog.commentscount || 0,
                                 views: blog.views,
-                                isLiked: blog.likes?.includes(mongoUser?._id),
+                                isLiked: mongoUser?._id && blog.likes?.map(id => String(id)).includes(String(mongoUser._id)),
                                 isSaved: savedBlogs.includes(blog._id)
                               }} isDark={isDark} onProtectedAction={handleProtectedAction} onLike={() => handleLike(blog._id)} onSave={() => handleSave(blog._id)} onArticleClick={() => {
                                 // Navigate to article page using simple ID route
                                 navigate(`/article/${blog._id}`);
-                              }} onFollowAuthor={setFollowingAuthor} currentUser={currentUser} onDelete={handleDelete} />
+                              }} onFollowAuthor={setFollowingAuthor} currentUser={currentUser} onDelete={handleDelete} setShowLoginPrompt={setShowLoginPrompt} />
                             ))}
                           </>
                         );
@@ -1115,15 +1157,17 @@ export default function Dashboard({ initialSection = 'home' }) {
                   {/* Right Column - Sidebar */}
                   <div className="space-y-8">
                     {/* Stats Card */}
-                    <div className={`rounded-2xl border p-6 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
-                      <h3 className={`font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Stats</h3>
-                      <div className="space-y-3">
-                        <StatRow icon={BookOpen} label="Posts" value={stats.totalPosts} isDark={isDark} />
-                        <StatRow icon={Eye} label="Views" value={stats.totalViews.toLocaleString()} isDark={isDark} />
-                        <StatRow icon={Heart} label="Likes" value={stats.totalLikes.toLocaleString()} isDark={isDark} />
-                        <StatRow icon={Users} label="Followers" value={stats.followers} isDark={isDark} />
+                    {currentUser && (
+                      <div className={`rounded-2xl border p-6 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-200'}`}>
+                        <h3 className={`font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Stats</h3>
+                        <div className="space-y-3">
+                          <StatRow icon={BookOpen} label="Posts" value={stats.totalPosts} isDark={isDark} />
+                          <StatRow icon={Eye} label="Views" value={stats.totalViews.toLocaleString()} isDark={isDark} />
+                          <StatRow icon={Heart} label="Likes" value={stats.totalLikes.toLocaleString()} isDark={isDark} />
+                          <StatRow icon={Users} label="Followers" value={stats.followers} isDark={isDark} />
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Staff Picks */}
                     <div>
@@ -1131,7 +1175,7 @@ export default function Dashboard({ initialSection = 'home' }) {
                       <div className="space-y-4">
                         {staffPicks.length > 0 ? (
                           staffPicks.map((pick) => (
-                            <StaffPickCard key={pick.id} pick={pick} isDark={isDark} onArticleClick={setSelectedArticle} />
+                            <StaffPickCard key={pick.id} pick={pick} isDark={isDark} onArticleClick={setSelectedArticle} currentUser={currentUser} setShowLoginPrompt={setShowLoginPrompt} />
                           ))
                         ) : (
                           <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -1181,7 +1225,7 @@ export default function Dashboard({ initialSection = 'home' }) {
 }
 
 // Components
-function NavItem({ icon: Icon, label, active, badge, onClick, isDark, iconOnly }) {
+function NavItem({ icon: Icon, label, active, badge, onClick, isDark, iconOnly, currentUser, setShowLoginPrompt }) {
   if (iconOnly) {
     return (
       <button
@@ -1202,7 +1246,14 @@ function NavItem({ icon: Icon, label, active, badge, onClick, isDark, iconOnly }
 
   return (
     <button
-      onClick={onClick}
+      onClick={(e) => {
+        if (!currentUser && label !== 'Home' && label !== 'Library') {
+          e.preventDefault();
+          setShowLoginPrompt(true);
+          return;
+        }
+        onClick();
+      }}
       className={`w-full flex items-center gap-4 px-6 py-3 relative group transition-all duration-200 overflow-hidden ${active
         ? isDark ? 'text-white' : 'text-gray-900'
         : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'
@@ -1227,7 +1278,7 @@ function NavItem({ icon: Icon, label, active, badge, onClick, isDark, iconOnly }
   );
 }
 
-function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArticleClick, onFollowAuthor, currentUser, onDelete }) {
+function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArticleClick, onFollowAuthor, currentUser, onDelete, setShowLoginPrompt }) {
   const [showMenu, setShowMenu] = useState(false);
   const navigate = useNavigate();
 
@@ -1290,6 +1341,11 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
 
   return (
     <div
+      onClick={() => {
+        if (!currentUser) {
+          setShowLoginPrompt(true);
+        }
+      }}
       className={`group cursor-pointer border-b pb-8 anim-fade-slide hover-lift ${isDark ? 'border-slate-700' : 'border-gray-100'
         }`}
     >
@@ -1298,9 +1354,16 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
           {/* Author + Menu */}
           <div className="flex items-center justify-between mb-2">
             <AuthorComponent
-              to={authorUrl}
+              to={currentUser ? authorUrl : "#"}
               className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition"
-              onClick={(e) => !authorUrl && handleArticleClick()}
+              onClick={(e) => {
+                if (!currentUser) {
+                  e.preventDefault();
+                  setShowLoginPrompt(true);
+                } else if (!authorUrl) {
+                  handleArticleClick();
+                }
+              }}
             >
               {article.authorImage ? (
                 <img
@@ -1328,9 +1391,16 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
 
           {/* Title - Clickable Link */}
           <ArticleComponent
-            to={articleUrl}
+            to={currentUser ? articleUrl : "#"}
             className="block cursor-pointer"
-            onClick={(e) => !articleUrl && handleArticleClick()}
+            onClick={(e) => {
+              if (!currentUser) {
+                e.preventDefault();
+                setShowLoginPrompt(true);
+              } else if (!articleUrl) {
+                handleArticleClick();
+              }
+            }}
           >
             <h2 className={`text-xl md:text-2xl font-bold font-serif mb-1 line-clamp-2 group-hover:underline decoration-glide transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
               {article.title.replace(/^#+\s*|^\*+|\*+$/g, '')}
@@ -1411,9 +1481,16 @@ function ArticleCard({ article, isDark, onProtectedAction, onLike, onSave, onArt
         {/* Image */}
         {article.image && (
           <ArticleComponent
-            to={articleUrl}
+            to={currentUser ? articleUrl : "#"}
             className="cursor-pointer"
-            onClick={(e) => !articleUrl && handleArticleClick()}
+            onClick={(e) => {
+              if (!currentUser) {
+                e.preventDefault();
+                setShowLoginPrompt(true);
+              } else if (!articleUrl) {
+                handleArticleClick();
+              }
+            }}
           >
             <img
               src={article.image}
@@ -1439,7 +1516,7 @@ function StatRow({ icon: Icon, label, value, isDark }) {
   );
 }
 
-function StaffPickCard({ pick, isDark, onArticleClick }) {
+function StaffPickCard({ pick, isDark, onArticleClick, currentUser, setShowLoginPrompt }) {
   const handleClick = () => {
     if (onArticleClick && pick.blog && !pick.authorUsername) {
       onArticleClick(pick.blog);
@@ -1460,9 +1537,16 @@ function StaffPickCard({ pick, isDark, onArticleClick }) {
   return (
     <div onClick={(!articleUrl && !authorUrl) ? handleClick : undefined} className="flex gap-3 cursor-pointer group hover:opacity-80 transition relative">
       <AuthorComponent
-        to={authorUrl}
+        to={currentUser ? authorUrl : "#"}
         className="block flex-shrink-0"
-        onClick={(e) => !authorUrl && handleClick()}
+        onClick={(e) => {
+          if (!currentUser) {
+            e.preventDefault();
+            setShowLoginPrompt(true);
+          } else if (!authorUrl) {
+            handleClick();
+          }
+        }}
       >
         {pick.image ? (
           <img
@@ -1478,9 +1562,16 @@ function StaffPickCard({ pick, isDark, onArticleClick }) {
       </AuthorComponent>
       <div className="flex-1 min-w-0">
         <ArticleComponent
-          to={articleUrl}
+          to={currentUser ? articleUrl : "#"}
           className="block"
-          onClick={(e) => !articleUrl && handleClick()}
+          onClick={(e) => {
+            if (!currentUser) {
+              e.preventDefault();
+              setShowLoginPrompt(true);
+            } else if (!articleUrl) {
+              handleClick();
+            }
+          }}
         >
           <h4 className={`text-sm font-medium mb-1 line-clamp-2 group-hover:text-scribe-green transition ${isDark ? 'text-white' : 'text-gray-900'}`}>
             {pick.title}
@@ -1488,9 +1579,16 @@ function StaffPickCard({ pick, isDark, onArticleClick }) {
         </ArticleComponent>
         <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
           <AuthorComponent
-            to={authorUrl}
+            to={currentUser ? authorUrl : "#"}
             className="hover:underline"
-            onClick={(e) => !authorUrl && handleClick()}
+            onClick={(e) => {
+              if (!currentUser) {
+                e.preventDefault();
+                setShowLoginPrompt(true);
+              } else if (!authorUrl) {
+                handleClick();
+              }
+            }}
           >
             <span>{pick.author}</span>
           </AuthorComponent>

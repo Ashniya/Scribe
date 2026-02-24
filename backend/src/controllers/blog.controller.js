@@ -322,7 +322,7 @@ export const saveBlogPost = async (req, res, next) => {
 // @access  Private
 export const getStatsForUser = async (req, res, next) => {
     try {
-        const stats = await getUserStats(req.user._id);
+        const stats = await getUserStats(req.user);
 
         res.status(200).json({
             success: true,

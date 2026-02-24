@@ -1,4 +1,5 @@
 import Blog from '../models/Blog.js';
+import mongoose from 'mongoose';
 
 // Helper function to strip HTML tags
 const stripHtml = (html) => {
@@ -80,9 +81,8 @@ export const findAllPublishedBlogs = async (limit = 50, query = null) => {
 
     // Populate author info only for blogs with a valid ObjectId authorId
     // (old blogs may have a Firebase UID string stored there, which would cause a CastError)
-    const mongoose = await import('mongoose');
     const populatedBlogs = await Promise.all(blogs.map(async (blog) => {
-        if (blog.authorId && mongoose.default.Types.ObjectId.isValid(blog.authorId)) {
+        if (blog.authorId && mongoose.Types.ObjectId.isValid(blog.authorId)) {
             const populated = await Blog.populate(blog, { path: 'authorId', select: 'username displayName photoURL' });
             return populated;
         }
@@ -92,15 +92,25 @@ export const findAllPublishedBlogs = async (limit = 50, query = null) => {
     return populatedBlogs;
 };
 
-export const findBlogsByAuthor = async (authorId) => {
-    // authorId may be a MongoDB ObjectId. Use isValid check to be safe.
-    const mongoose = await import('mongoose');
-    const blogs = await Blog.find({ authorId })
+export const findBlogsByAuthor = async (user) => {
+    const authorId = (typeof user === 'object' && user?._id) ? user._id : user;
+    const firebaseUid = (typeof user === 'object' && user?.firebaseUid) ? user.firebaseUid : null;
+
+    if (!authorId) return [];
+
+    // Query by both MongoDB ObjectId and Firebase UID string to be safe
+    // If authorId is already the string, it covers the Firebase case if user is just a string
+    const query = { $or: [{ authorId }] };
+    if (firebaseUid && String(firebaseUid) !== String(authorId)) {
+        query.$or.push({ authorId: firebaseUid });
+    }
+
+    const blogs = await Blog.find(query)
         .sort({ createdAt: -1 })
         .lean();
 
     return Promise.all(blogs.map(async (blog) => {
-        if (blog.authorId && mongoose.default.Types.ObjectId.isValid(blog.authorId)) {
+        if (blog.authorId && mongoose.Types.ObjectId.isValid(blog.authorId)) {
             return Blog.populate(blog, { path: 'authorId', select: 'username displayName photoURL' });
         }
         return blog;
@@ -111,8 +121,7 @@ export const findBlogById = async (blogId) => {
     const blog = await Blog.findById(blogId).lean();
     if (!blog) return null;
 
-    const mongoose = await import('mongoose');
-    if (blog.authorId && mongoose.default.Types.ObjectId.isValid(blog.authorId)) {
+    if (blog.authorId && mongoose.Types.ObjectId.isValid(blog.authorId)) {
         return Blog.populate(blog, { path: 'authorId', select: 'username displayName photoURL' });
     }
     return blog;
@@ -150,14 +159,15 @@ export const toggleLike = async (blogId, userId) => {
     if (!blog) return null;
 
     const likes = blog.likes || [];
-    const likeIndex = likes.indexOf(userId);
+    const userIdStr = String(userId);
+    const likeIndex = likes.findIndex(id => String(id) === userIdStr);
 
     let isLiked;
     if (likeIndex > -1) {
         likes.splice(likeIndex, 1);
         isLiked = false;
     } else {
-        likes.push(userId);
+        likes.push(userIdStr);
         isLiked = true;
     }
 
@@ -177,7 +187,8 @@ export const toggleSave = async (blogId, userId) => {
     if (!blog) return null;
 
     const saves = blog.saves || [];
-    const saveIndex = saves.indexOf(userId);
+    const userIdStr = String(userId);
+    const saveIndex = saves.findIndex(id => String(id) === userIdStr);
     let isSaved = false;
 
     if (saveIndex > -1) {
@@ -186,7 +197,7 @@ export const toggleSave = async (blogId, userId) => {
         isSaved = false;
     } else {
         // Save
-        saves.push(userId);
+        saves.push(userId); // Schema uses ObjectId for saves, so keep original ID
         isSaved = true;
     }
 
@@ -304,14 +315,14 @@ export const updateReadTime = async (blogId, durationSeconds) => {
     }
 };
 
-export const getUserStats = async (authorId) => {
-    const blogs = await findBlogsByAuthor(authorId);
+export const getUserStats = async (user) => {
+    const blogs = await findBlogsByAuthor(user);
 
     const stats = {
         totalPosts: blogs.length,
         totalViews: blogs.reduce((sum, blog) => sum + (blog.views || 0), 0),
-        totalLikes: blogs.reduce((sum, blog) => sum + (blog.likes?.length || 0), 0),
-        followers: 0
+        totalLikes: blogs.reduce((sum, blog) => sum + (blog.likes?.length || blog.likescount || 0), 0),
+        followers: user.followerCount || 0
     };
 
     return stats;

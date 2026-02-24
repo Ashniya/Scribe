@@ -66,7 +66,12 @@ export default function Profile() {
 
     useEffect(() => {
         if (profile && currentUser && !isOwnProfile) {
-            setIsFollowing(profile.followers?.includes(currentUser._id) || currentUser.following?.includes(profile._id));
+            const userIdStr = currentUser._id ? String(currentUser._id) : null;
+            const profileIdStr = profile._id ? String(profile._id) : null;
+            setIsFollowing(
+                (profile.followers || []).map(id => String(id)).includes(userIdStr) ||
+                (currentUser.following || []).map(id => String(id)).includes(profileIdStr)
+            );
         }
     }, [profile, currentUser]);
 

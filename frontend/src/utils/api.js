@@ -451,8 +451,8 @@ export const saveBlog = async (blogId) => {
   return apiCall(`/blogs/${blogId}/save`, { method: 'POST' });
 };
 
-export const getMyStats = async () => {
-  return apiCall('/stats/my-stats');
+export const getMyStats = async (range) => {
+  return apiCall(`/stats/my-stats?range=${range}`);
 };
 
 // ============= USER APIs =============

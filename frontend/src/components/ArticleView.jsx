@@ -43,7 +43,7 @@ export default function ArticleView({
         if (article?._id) {
             fetchComments();
         }
-    }, [article]);
+    }, [article?._id]);
 
     const fetchComments = async () => {
         try {
@@ -319,7 +319,7 @@ export default function ArticleView({
                                         <div className={`p-2 rounded-full group-hover:bg-red-50 dark:group-hover:bg-red-900/20 transition ${isLiked ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                                             <Heart className="w-6 h-6" fill={isLiked ? "currentColor" : "none"} />
                                         </div>
-                                        <span className="font-medium">{(article.claps || 0) + (isLiked ? 1 : 0)} likes</span>
+                                        <span className="font-medium">{(article.likescount || article.claps || 0)} likes</span>
                                     </button>
 
                                     <button

@@ -30,7 +30,7 @@ const blogSchema = new mongoose.Schema({
         default: null
     },
     authorId: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed, // Support both ObjectId and Firebase UID String
         ref: 'User',
         required: true
     },

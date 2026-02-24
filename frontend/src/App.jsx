@@ -176,11 +176,7 @@ function App() {
               {/* Dashboard - home feed */}
               <Route
                 path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
+                element={<Dashboard />}
               />
 
               {/* Messages Routes */}
@@ -204,11 +200,7 @@ function App() {
               {/* Dashboard section routes (following, favorites, collections, etc.) */}
               <Route
                 path="/dashboard/:section"
-                element={
-                  <ProtectedRoute>
-                    <DashboardSectionRouter />
-                  </ProtectedRoute>
-                }
+                element={<DashboardSectionRouter />}
               />
 
               {/* Your own profile */}
