@@ -121,6 +121,7 @@ export const getLikedBlogsByUserId = async (req, res, next) => {
         const blogs = await Blog.find({ likes: req.params.userId })
             .populate('authorId', 'username displayName photoURL')
             .sort({ createdAt: -1 })
+            .select('-content') // Optimization: skip content
             .lean();
 
         res.status(200).json({
@@ -147,8 +148,8 @@ export const getBlog = async (req, res, next) => {
             });
         }
 
-        // Increment views
-        await incrementViews(req.params.id);
+        // Increment views (non-blocking)
+        incrementViews(req.params.id);
         blog.views = (blog.views || 0) + 1;
 
         res.status(200).json({
@@ -224,8 +225,8 @@ export const getBlogBySlug = async (req, res, next) => {
             blog.slug = newSlug;
         }
 
-        // Increment views
-        await incrementViews(blog._id);
+        // Increment views (non-blocking)
+        incrementViews(blog._id);
         blog.views = (blog.views || 0) + 1;
 
         res.status(200).json({

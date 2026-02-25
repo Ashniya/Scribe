@@ -303,18 +303,27 @@ export default function Dashboard({ initialSection = 'home' }) {
   };
 
   const loadStats = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
-      const token = await getToken();
+      const token = await auth.currentUser?.getIdToken();
       if (!token) return;
-      const res = await fetch('http://localhost:5000/api/blogs/user/stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch('http://127.0.0.1:5000/api/blogs/user/stats', {
+        headers: { 'Authorization': `Bearer ${token}` },
+        signal: controller.signal
       });
       const data = await res.json();
       if (data.success) {
         setStats(data.data);
       }
     } catch (err) {
-      console.error('Failed to load stats:', err);
+      if (err.name === 'AbortError') {
+        console.error('Stats load aborted due to timeout');
+      } else {
+        console.error('Failed to load stats:', err);
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 
@@ -363,10 +372,10 @@ export default function Dashboard({ initialSection = 'home' }) {
 
   const handleDelete = async (blogId) => {
     try {
-      const token = await getToken();
+      const token = await auth.currentUser?.getIdToken();
       if (!token) return;
 
-      const res = await fetch(`http://localhost:5000/api/blogs/${blogId}`, {
+      const res = await fetch(`http://127.0.0.1:5000/api/blogs/${blogId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -385,37 +394,76 @@ export default function Dashboard({ initialSection = 'home' }) {
     }
   };
 
-  const handleEdit = (blog) => {
+  const handleEdit = async (blog) => {
     console.log('handleEdit called with blog:', blog);
-    setEditingBlog(blog);
+
+    // If content is missing (due to our dashboard optimization), fetch the full document
+    if (!blog.content) {
+      try {
+        const blogId = blog._id || blog.id;
+        const res = await getBlogById(blogId);
+        if (res.success) {
+          setEditingBlog(res.data);
+        } else {
+          setEditingBlog(blog);
+        }
+      } catch (err) {
+        console.error('Failed to fetch full blog for editing:', err);
+        setEditingBlog(blog);
+      }
+    } else {
+      setEditingBlog(blog);
+    }
+
     setSelectedArticle(null); // Clear viewing state to show editor
     setShowEditor(true);
   };
 
   useEffect(() => {
     const fetchData = async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
       try {
-        const blogsRes = await fetch('http://localhost:5000/api/blogs');
-        const blogsData = await blogsRes.json();
+        const tokenPromise = auth.currentUser?.getIdToken() || Promise.resolve(null);
+        // Use 127.0.0.1 to avoid local DNS delays
+        const blogsPromise = fetch('http://127.0.0.1:5000/api/blogs', { signal: controller.signal })
+          .then(res => res.json());
+
+        const [token, blogsData] = await Promise.all([tokenPromise, blogsPromise]);
+
         if (blogsData.success) {
           setBlogs(blogsData.data);
         }
 
-        const token = await getToken();
         if (token) {
-          const myBlogsRes = await fetch('http://localhost:5000/api/blogs/user/my-blogs', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const myBlogsData = await myBlogsRes.json();
-          if (myBlogsData.success) {
-            setMyBlogs(myBlogsData.data);
-          }
+          const [myBlogsRes, statsRes] = await Promise.all([
+            fetch('http://127.0.0.1:5000/api/blogs/user/my-blogs', {
+              headers: { 'Authorization': `Bearer ${token}` },
+              signal: controller.signal
+            }),
+            fetch('http://127.0.0.1:5000/api/blogs/user/stats', {
+              headers: { 'Authorization': `Bearer ${token}` },
+              signal: controller.signal
+            })
+          ]);
 
-          await loadStats();
+          const [myBlogsData, statsData] = await Promise.all([
+            myBlogsRes.json(),
+            statsRes.json()
+          ]);
+
+          if (myBlogsData.success) setMyBlogs(myBlogsData.data);
+          if (statsData.success) setStats(statsData.data);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        if (error.name === 'AbortError') {
+          console.error('Fetch aborted: Database is taking too long to respond.');
+        } else {
+          console.error('Error fetching data:', error);
+        }
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     };

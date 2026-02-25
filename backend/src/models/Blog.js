@@ -115,6 +115,12 @@ const blogSchema = new mongoose.Schema({
     timestamps: true
 });
 
+// Add indices for performance optimization
+blogSchema.index({ publishedAt: -1 });
+blogSchema.index({ authorId: 1 });
+blogSchema.index({ createdAt: -1 });
+blogSchema.index({ published: 1 });
+
 const Blog = mongoose.model('Blog', blogSchema);
 
 export default Blog;
