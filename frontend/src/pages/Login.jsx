@@ -12,7 +12,7 @@ import {
   GoogleAuthProvider,
   updateProfile
 } from 'firebase/auth';
-import { registerUser, updateProfile, uploadAvatar, followUser, unfollowUser, API_URL } from '../utils/api';
+import { registerUser, API_URL } from '../utils/api';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
