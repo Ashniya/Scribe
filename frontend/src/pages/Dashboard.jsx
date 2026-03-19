@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { auth } from '../config/firebase.js';
 import { createSlug } from '../utils/slug';
-import { getFollowing } from '../utils/api';
+import { getFollowing, getAllBlogs, getMyBlogs, getQuickStats, deleteBlog, saveBlog, getBlogById } from '../utils/api';
 import Editor from '../components/Editor';
 import ArticleView from '../components/ArticleView';
 import ProfileSettings from '../components/ProfileSettings';
@@ -17,7 +17,7 @@ import ProfileContent from '../components/ProfileContent';
 import StatsContent from '../components/StatsContent';
 import SearchContent from '../components/SearchContent';
 import MessagesContent from '../components/MessagesContent';
-import { saveBlog, getBlogById } from '../utils/api';
+
 import { getOrCreateConversation } from '../utils/messageapi';
 import {
   Home,
@@ -303,27 +303,15 @@ export default function Dashboard({ initialSection = 'home' }) {
   };
 
   const loadStats = async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) return;
-      const res = await fetch('http://127.0.0.1:5000/api/blogs/user/stats', {
-        headers: { 'Authorization': `Bearer ${token}` },
-        signal: controller.signal
-      });
-      const data = await res.json();
-      if (data.success) {
-        setStats(data.data);
+      const res = await getQuickStats();
+      if (res.success) {
+        setStats(res.data);
+      } else {
+        console.warn('Stats API returned success:false', res);
       }
     } catch (err) {
-      if (err.name === 'AbortError') {
-        console.error('Stats load aborted due to timeout');
-      } else {
-        console.error('Failed to load stats:', err);
-      }
-    } finally {
-      clearTimeout(timeoutId);
+      console.error('Failed to load stats:', err);
     }
   };
 
@@ -372,21 +360,13 @@ export default function Dashboard({ initialSection = 'home' }) {
 
   const handleDelete = async (blogId) => {
     try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) return;
-
-      const res = await fetch(`http://127.0.0.1:5000/api/blogs/${blogId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      const data = await res.json();
-      if (data.success) {
+      const res = await deleteBlog(blogId);
+      if (res.success) {
         setBlogs(prev => prev.filter(b => b._id !== blogId));
         setMyBlogs(prev => prev.filter(b => b._id !== blogId));
         alert('Story deleted successfully!');
       } else {
-        alert('Failed to delete story: ' + (data.message || 'Unknown error'));
+        alert('Failed to delete story: ' + (res.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Delete error:', error);
@@ -421,49 +401,25 @@ export default function Dashboard({ initialSection = 'home' }) {
 
   useEffect(() => {
     const fetchData = async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
+      setLoading(true);
       try {
-        const tokenPromise = auth.currentUser?.getIdToken() || Promise.resolve(null);
-        // Use 127.0.0.1 to avoid local DNS delays
-        const blogsPromise = fetch('http://127.0.0.1:5000/api/blogs', { signal: controller.signal })
-          .then(res => res.json());
-
-        const [token, blogsData] = await Promise.all([tokenPromise, blogsPromise]);
-
+        const blogsData = await getAllBlogs();
         if (blogsData.success) {
           setBlogs(blogsData.data);
         }
 
-        if (token) {
-          const [myBlogsRes, statsRes] = await Promise.all([
-            fetch('http://127.0.0.1:5000/api/blogs/user/my-blogs', {
-              headers: { 'Authorization': `Bearer ${token}` },
-              signal: controller.signal
-            }),
-            fetch('http://127.0.0.1:5000/api/blogs/user/stats', {
-              headers: { 'Authorization': `Bearer ${token}` },
-              signal: controller.signal
-            })
-          ]);
-
+        if (currentUser) {
           const [myBlogsData, statsData] = await Promise.all([
-            myBlogsRes.json(),
-            statsRes.json()
+            getMyBlogs(),
+            getQuickStats()
           ]);
 
           if (myBlogsData.success) setMyBlogs(myBlogsData.data);
           if (statsData.success) setStats(statsData.data);
         }
       } catch (error) {
-        if (error.name === 'AbortError') {
-          console.error('Fetch aborted: Database is taking too long to respond.');
-        } else {
-          console.error('Error fetching data:', error);
-        }
+        console.error('Error fetching data:', error);
       } finally {
-        clearTimeout(timeoutId);
         setLoading(false);
       }
     };

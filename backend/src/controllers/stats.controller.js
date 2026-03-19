@@ -88,7 +88,17 @@ export const getMyStats = async (req, res, next) => {
             .select('followerCount subscriberCount');
 
         // 2. Get Blog Data (Views, Likes, Reads, ReadTime)
-        const blogs = await Blog.find({ authorId: userId });
+        // Mega-robust matching for authorId
+        const firebaseUid = req.user.firebaseUid || req.user.uid;
+        const userIdStr = String(userId);
+
+        const blogs = await Blog.find({
+            $or: [
+                { authorId: userId },
+                { authorId: userIdStr },
+                { authorId: firebaseUid }
+            ].filter(cond => cond.authorId)
+        });
 
         let totalViews = 0;
         let totalLikes = 0;
@@ -97,7 +107,7 @@ export const getMyStats = async (req, res, next) => {
 
         blogs.forEach(blog => {
             totalViews += (blog.views || 0);
-            totalLikes += (blog.likescount || 0);
+            totalLikes += (blog.likescount || (blog.likes && blog.likes.length) || 0);
             totalReads += (blog.totalReads || 0);
             totalReadTime += (blog.totalReadTime || 0);
         });

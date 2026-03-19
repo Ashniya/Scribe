@@ -1,7 +1,7 @@
 // // frontend/src/utils/api.js
 // import { auth } from '../config/firebase';
 
-// const API_URL = 'http://localhost:5000/api';
+// const API_URL = 'http://127.0.0.1:5000/api';
 
 // // Helper to get auth token
 // const getAuthToken = async () => {
@@ -288,7 +288,7 @@
 // frontend/src/utils/api.js
 import { auth } from '../config/firebase';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://127.0.0.1:5000/api';
 
 // Helper to get auth token
 const getAuthToken = async () => {
@@ -455,6 +455,11 @@ export const getMyStats = async (range) => {
   return apiCall(`/stats/my-stats?range=${range}`);
 };
 
+// QUICK STATS for Dashboard Sidebar
+export const getQuickStats = async () => {
+  return apiCall('/blogs/user/stats');
+};
+
 // ============= USER APIs =============
 
 export const checkUsername = async (username) => {
@@ -587,6 +592,7 @@ export default {
   getUserActivity,
   saveBlog,
   getMyStats,
+  getQuickStats,
   getBlogById,
   repostBlog,
   trackReadTime,

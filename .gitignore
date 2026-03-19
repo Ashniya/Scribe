@@ -15,3 +15,5 @@ tmp/
 .DS_Store
 *.swp
 backend/ScribeServiceAccountKey.json
+backend/uploads/
+backend/error*.txt

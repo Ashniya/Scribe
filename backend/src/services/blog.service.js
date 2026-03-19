@@ -95,14 +95,21 @@ export const findBlogsByAuthor = async (user) => {
 
     if (!authorId) return [];
 
-    // Query by both MongoDB ObjectId and Firebase UID string to be safe
-    // If authorId is already the string, it covers the Firebase case if user is just a string
-    const query = { $or: [{ authorId }] };
-    if (firebaseUid && String(firebaseUid) !== String(authorId)) {
-        query.$or.push({ authorId: firebaseUid });
+    // Mega-robust query matching:
+    // 1. MongoDB ObjectId
+    // 2. MongoDB _id as String
+    // 3. Firebase UID as String
+    const authorIdStr = String(authorId);
+    const orConditions = [
+        { authorId: authorId },
+        { authorId: authorIdStr }
+    ];
+
+    if (firebaseUid && String(firebaseUid) !== authorIdStr) {
+        orConditions.push({ authorId: firebaseUid });
     }
 
-    const blogs = await Blog.find(query)
+    const blogs = await Blog.find({ $or: orConditions })
         .sort({ createdAt: -1 })
         .populate('authorId', 'username displayName photoURL')
         .lean();
@@ -309,12 +316,23 @@ export const updateReadTime = async (blogId, durationSeconds) => {
 };
 
 export const getUserStats = async (user) => {
-    const blogs = await findBlogsByAuthor(user);
+    const userId = user._id || user;
+    const firebaseUid = user.firebaseUid || user.uid;
+    const authorIdStr = String(userId);
+
+    // Mega-robust query matching both MongoDB ObjectId, _id as String, and Firebase UID String
+    const blogs = await Blog.find({
+        $or: [
+            { authorId: userId },
+            { authorId: authorIdStr },
+            { authorId: firebaseUid }
+        ].filter(cond => cond.authorId) // Filter out null/undefined
+    });
 
     const stats = {
         totalPosts: blogs.length,
         totalViews: blogs.reduce((sum, blog) => sum + (blog.views || 0), 0),
-        totalLikes: blogs.reduce((sum, blog) => sum + (blog.likes?.length || blog.likescount || 0), 0),
+        totalLikes: blogs.reduce((sum, blog) => sum + (blog.likescount || blog.likes?.length || 0), 0),
         followers: user.followerCount || 0
     };
 

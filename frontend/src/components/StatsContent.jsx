@@ -81,7 +81,7 @@ export default function StatsContent() {
                 <div className="grid grid-cols-2 gap-4 mb-12">
                     <MetricCard
                         title="Followers"
-                        value={statsData.followerCount ?? statsData.followerCount ?? 0}
+                        value={statsData.followerCount || 0}
                         icon={Bell}
                         isDark={isDark}
                     />
