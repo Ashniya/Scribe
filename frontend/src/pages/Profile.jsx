@@ -123,7 +123,7 @@ export default function Profile() {
         try {
             const token = localStorage.getItem('token');
             if (token) {
-                const res = await fetch('http://localhost:5000/api/blogs/user/my-blogs', {
+                const res = await fetch(`${API_URL}/api/blogs/user/my-blogs`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();

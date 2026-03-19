@@ -12,7 +12,7 @@ import {
   GoogleAuthProvider,
   updateProfile
 } from 'firebase/auth';
-import { registerUser } from '../utils/api';
+import { registerUser, updateProfile, uploadAvatar, followUser, unfollowUser, API_URL } from '../utils/api';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -34,7 +34,7 @@ export default function LoginPage() {
         const result = await getRedirectResult(auth);
         if (result && result.user) {
           const token = await result.user.getIdToken();
-          await fetch('http://localhost:5000/api/auth/me', {
+          await fetch(`${API_URL}/api/auth/me`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
           });
@@ -135,7 +135,7 @@ export default function LoginPage() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const token = await result.user.getIdToken();
-      const mongoResponse = await fetch('http://localhost:5000/api/auth/me', {
+      const mongoResponse = await fetch(`${API_URL}/api/auth/me`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });

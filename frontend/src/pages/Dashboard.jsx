@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { auth } from '../config/firebase.js';
 import { createSlug } from '../utils/slug';
-import { getFollowing, getAllBlogs, getMyBlogs, getQuickStats, deleteBlog, saveBlog, getBlogById } from '../utils/api';
+import { getFollowing, getAllBlogs, getMyBlogs, getQuickStats, deleteBlog, saveBlog, getBlogById, API_URL } from '../utils/api';
 import Editor from '../components/Editor';
 import ArticleView from '../components/ArticleView';
 import ProfileSettings from '../components/ProfileSettings';
@@ -263,7 +263,7 @@ export default function Dashboard({ initialSection = 'home' }) {
     try {
       const token = await getToken();
       if (!token) return;
-      const res = await fetch(`http://localhost:5000/api/blogs/${blogId}/like`, {
+      const res = await fetch(`${API_URL}/blogs/${blogId}/like`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

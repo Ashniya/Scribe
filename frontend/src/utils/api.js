@@ -288,7 +288,7 @@
 // frontend/src/utils/api.js
 import { auth } from '../config/firebase';
 
-const API_URL = 'http://127.0.0.1:5000/api';
+export const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
 // Helper to get auth token
 const getAuthToken = async () => {

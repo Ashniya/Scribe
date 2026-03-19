@@ -12,7 +12,8 @@ import {
     unfollowUser,
     subscribeUser,
     unsubscribeUser,
-    getUserActivity
+    getUserActivity,
+    API_URL
 } from '../utils/api';
 import { auth } from '../config/firebase'; // Import auth directly for direct signOut
 import {
@@ -147,7 +148,7 @@ export default function ProfileContent({ onMessage }) {
     const fetchUserBlogs = async (userId) => {
         setLoadingTabs(true);
         try {
-            const res = await fetch(`http://localhost:5000/api/blogs/user/${userId}/blogs`);
+            const res = await fetch(`${API_URL}/blogs/user/${userId}/blogs`);
             const data = await res.json();
             if (data.success) {
                 setMyPosts(data.data);
@@ -161,7 +162,7 @@ export default function ProfileContent({ onMessage }) {
 
     const fetchLikedBlogs = async (userId) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/blogs/user/${userId}/liked`);
+            const res = await fetch(`${API_URL}/blogs/user/${userId}/liked`);
             const data = await res.json();
             if (data.success) {
                 setLikedPosts(data.data);

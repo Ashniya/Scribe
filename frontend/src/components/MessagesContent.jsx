@@ -40,7 +40,8 @@ export default function MessagesContent({ initialConversationId }) {
         const initSocket = async () => {
             const token = await currentUser.getIdToken();
 
-            const newSocket = io('http://localhost:5000', {
+            const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const newSocket = io(socketUrl, {
                 auth: { token }
             });
 
