@@ -13,12 +13,9 @@ import {
 import Navbar from "../components/Navbar";
 import { ThemeContext } from "../context/ThemeContext";
 
-
-
-
-const EMAILJS_SERVICE_ID  = "service_re8eu6d";   // e.g. "service_abc123"
+const EMAILJS_SERVICE_ID = "service_re8eu6d";   // e.g. "service_abc123"
 const EMAILJS_TEMPLATE_ID = "template_m9opscp";  // e.g. "template_xyz456"
-const EMAILJS_PUBLIC_KEY  = "oemCsjgNh_Xm86odk";   // e.g. "AbCdEfGhIjKlMnOp"
+const EMAILJS_PUBLIC_KEY = "oemCsjgNh_Xm86odk";   // e.g. "AbCdEfGhIjKlMnOp"
 
 const inputClass =
   "w-full px-4 py-3 rounded-xl border border-[#d8cfb2] dark:border-gray-600 " +
@@ -50,10 +47,10 @@ const Contact = () => {
         EMAILJS_SERVICE_ID,
         EMAILJS_TEMPLATE_ID,
         {
-          from_name:  `${formData.firstName} ${formData.lastName}`.trim(),
+          from_name: `${formData.firstName} ${formData.lastName}`.trim(),
           from_email: formData.email,
-          subject:    formData.subject || "New message from Scribe contact form",
-          message:    formData.message,
+          subject: formData.subject || "New message from Scribe contact form",
+          message: formData.message,
         },
         EMAILJS_PUBLIC_KEY
       );
@@ -96,10 +93,10 @@ const Contact = () => {
               </div>
 
               <div className="mt-6 flex items-center gap-4">
-                <SocialIcon icon={<Facebook />}  label="Facebook" />
+                <SocialIcon icon={<Facebook />} label="Facebook" />
                 <SocialIcon icon={<Instagram />} label="Instagram" />
-                <SocialIcon icon={<Twitter />}   label="Twitter" />
-                <SocialIcon icon={<Linkedin />}  label="LinkedIn" />
+                <SocialIcon icon={<Twitter />} label="Twitter" />
+                <SocialIcon icon={<Linkedin />} label="LinkedIn" />
               </div>
 
               <div className="mt-14 hidden lg:block">

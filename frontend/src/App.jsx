@@ -1,57 +1,177 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import Landing from './pages/Landing';
 import LoginPage from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
+import About from './pages/About';
+import Profile from './pages/Profile';
+import Stats from './pages/Stats';
+import Search from './pages/Search';
+import ProfileTest from './pages/ProfileTest';
+import Contact from './pages/Contact';
+import ArticlePage from './pages/ArticlePage';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './components/Toast';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import LoginPromptModal from './components/LoginPromptModal'
-// import admin from 'firebase-admin';
+import LoginPromptModal from './components/LoginPromptModal';
+
+// Maps /dashboard/:section URL param to Dashboard initialSection
+const VALID_SECTIONS = ['library', 'profile', 'stories', 'stats', 'following', 'favorites', 'collections', 'notifications', 'settings', 'search'];
+function DashboardSectionRouter() {
+  const { section } = useParams();
+  const validSection = VALID_SECTIONS.includes(section) ? section : 'home';
+  return <Dashboard initialSection={validSection} />;
+}
+
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <AuthProvider>
-          <Routes>
-            {/* Public route - accessible to everyone */}
-            <Route path="/" element={<Landing />} />
+      <ToastProvider>
+        <Router>
+          <AuthProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
 
-            {/* About page */}
-            <Route path="/about" element={<About />} />
+              {/* Login/Auth routes - only when NOT logged in */}
+              <Route
+                path="/login"
+                element={
+                  <PublicOnlyRoute>
+                    <LoginPage />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
-            {/* Contact page */}
-            <Route path="/contact" element={<Contact />} />
+              {/* Dashboard - home feed */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Login route - only accessible when NOT logged in */}
-            <Route
-              path="/login"
-              element={
-                <PublicOnlyRoute>
-                  <LoginPage />
-                </PublicOnlyRoute>
-              }
-            />
+              {/* Messages Routes */}
+              <Route
+                path="/dashboard/messages"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard initialSection="messages" />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/messages/:conversationId"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard initialSection="messages" />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Forgot Password route */}
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* Dashboard section routes (following, favorites, collections, etc.) */}
+              <Route
+                path="/dashboard/:section"
+                element={
+                  <ProtectedRoute>
+                    <DashboardSectionRouter />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Protected route - only accessible when logged in */}
-            <Route
-              path="/dashboard"
-              element={
-                <Dashboard />
-              }
-            />
+              {/* Your own profile */}
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* 404 - Not found */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AuthProvider>
-      </Router>
+              {/* User profiles - @username format (your version) */}
+              <Route
+                path="/@:username"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Friend's /profile/:username format - keep for compatibility */}
+              <Route
+                path="/profile/:username"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Article Page - simple ID-based route (primary) */}
+              <Route
+                path="/article/:id"
+                element={
+                  <ProtectedRoute>
+                    <ArticlePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Article Page - Substack-style URLs (kept for compatibility) */}
+              <Route
+                path="/@:username/:slug"
+                element={
+                  <ProtectedRoute>
+                    <ArticlePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Stats */}
+              <Route
+                path="/stats"
+                element={
+                  <ProtectedRoute>
+                    <Stats />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Search / Explore */}
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute>
+                    <Search />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Profile Test */}
+              <Route
+                path="/profile-test"
+                element={
+                  <ProtectedRoute>
+                    <ProfileTest />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 404 */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AuthProvider>
+        </Router>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

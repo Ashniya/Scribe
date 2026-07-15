@@ -6,6 +6,10 @@ const blogSchema = new mongoose.Schema({
         required: [true, 'Title is required'],
         trim: true
     },
+    slug: {
+        type: String,
+        index: true
+    },
     content: {
         type: String,
         required: [true, 'Content is required']
@@ -26,7 +30,8 @@ const blogSchema = new mongoose.Schema({
         default: null
     },
     authorId: {
-        type: String,
+        type: mongoose.Schema.Types.Mixed, // Support both ObjectId and Firebase UID String
+        ref: 'User',
         required: true
     },
     authorName: {
@@ -68,10 +73,53 @@ const blogSchema = new mongoose.Schema({
     publishedAt: {
         type: Date,
         default: Date.now
+    },
+    totalReadTime: {
+        type: Number,
+        default: 0
+    },
+    totalReads: {
+        type: Number,
+        default: 0
+    },
+
+    // New Features
+    isRepost: {
+        type: Boolean,
+        default: false
+    },
+    originalAuthor: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    originalPostId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Blog'
+    },
+    repostedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    repostedAt: {
+        type: Date
+    },
+    saves: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    saveCount: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true
 });
+
+// Add indices for performance optimization
+blogSchema.index({ publishedAt: -1 });
+blogSchema.index({ authorId: 1 });
+blogSchema.index({ createdAt: -1 });
+blogSchema.index({ published: 1 });
 
 const Blog = mongoose.model('Blog', blogSchema);
 

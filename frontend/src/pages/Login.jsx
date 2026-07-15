@@ -1,21 +1,22 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import floralImage from '../assets/hand_painted_floral_watercolour_design_2801.jpg';
 import { auth } from '../config/firebase.js';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   updateProfile
 } from 'firebase/auth';
+import { registerUser, API_URL } from '../utils/api';
 
 export default function LoginPage() {
-  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedPortal, setSelectedPortal] = useState('organizer');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -24,9 +25,30 @@ export default function LoginPage() {
     password: ''
   });
 
+  const navigate = useNavigate();
+
+  // Handle redirect result on mount (fallback from popup → redirect)
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          const token = await result.user.getIdToken();
+          await fetch(`${API_URL}/api/auth/me`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+          });
+          navigate('/dashboard');
+        }
+      } catch (err) {
+        // Ignore — no redirect was in progress
+      }
+    };
+    handleRedirectResult();
+  }, []);
+
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Clear error when user starts typing
     if (error) setError('');
   };
 
@@ -37,38 +59,39 @@ export default function LoginPage() {
 
     try {
       if (isLogin) {
-        // Login with email and password
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          formData.email,
-          formData.password
-        );
-        console.log('User logged in:', userCredential.user);
-        // Redirect to dashboard
+        // Login
+        await signInWithEmailAndPassword(auth, formData.email, formData.password);
+        console.log('✅ User logged in');
         navigate('/dashboard');
       } else {
-        // Signup with email and password
+        // Signup
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           formData.email,
           formData.password
         );
 
-        // Update user profile with display name
+        // Update Firebase profile
         await updateProfile(userCredential.user, {
           displayName: formData.fullName
         });
 
-        console.log('User created:', userCredential.user);
-        // Redirect to dashboard
+        console.log('✅ Firebase user created:', userCredential.user.uid);
+
+        // Register in MongoDB
+        const mongoResponse = await registerUser({
+          firebaseUid: userCredential.user.uid,
+          email: userCredential.user.email,
+          displayName: formData.fullName,
+          photoURL: userCredential.user.photoURL
+        });
+
+        console.log('✅ MongoDB user created:', mongoResponse);
         navigate('/dashboard');
       }
     } catch (error) {
       console.error('Authentication error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
 
-      // Handle specific Firebase errors
       switch (error.code) {
         case 'auth/email-already-in-use':
           setError('This email is already registered. Please login instead.');
@@ -95,95 +118,90 @@ export default function LoginPage() {
           setError('Invalid credentials. Please check your email and password.');
           break;
         default:
-          setError(`An error occurred: ${error.message || 'Please try again.'}`);
+          setError(error.message || 'An error occurred. Please try again.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSSOLogin = async (provider) => {
+  const handleSSOLogin = async () => {
     setError('');
     setLoading(true);
 
-    try {
-      const googleProvider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, googleProvider);
+    const googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-      console.log('Google sign-in successful:', result.user);
-      // Redirect to dashboard
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const token = await result.user.getIdToken();
+      const mongoResponse = await fetch(`${API_URL}/api/auth/me`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      const mongoData = await mongoResponse.json();
+      if (!mongoResponse.ok) throw new Error(mongoData.message || 'Failed to sync user');
       navigate('/dashboard');
     } catch (error) {
       console.error('Google sign-in error:', error);
 
-      switch (error.code) {
-        case 'auth/popup-closed-by-user':
-          setError('Sign-in popup was closed. Please try again.');
-          break;
-        case 'auth/popup-blocked':
-          setError('Popup was blocked by browser. Please allow popups and try again.');
-          break;
-        case 'auth/account-exists-with-different-credential':
-          setError('An account already exists with this email using a different sign-in method.');
-          break;
-        default:
-          setError('Google sign-in failed. Please try again.');
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+        // Fallback: use redirect flow if popup was blocked
+        try {
+          await signInWithRedirect(auth, new GoogleAuthProvider());
+          // Page will redirect; result handled in useEffect above
+          return;
+        } catch (redirectErr) {
+          setError('Could not open Google sign-in. Please allow popups and try again.');
+        }
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in window was closed. Please try again.');
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        setError('An account already exists with this email using a different sign-in method.');
+      } else {
+        setError(error.message || 'Google sign-in failed. Please try again.');
       }
-    } finally {
+
       setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden">
-      {/* Full Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${floralImage})` }}
       />
 
-      {/* Optional subtle overlay for better contrast */}
       <div className="absolute inset-0 bg-black/10"></div>
 
-      {/* Container with glass effect */}
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-8">
-        {/* Main container with border and glass effect */}
-        <div className="relative rounded-3xl overflow-hidden border-4 border-white/40 shadow-2xl ">
+        <div className="relative rounded-3xl overflow-hidden border-4 border-white/40 shadow-2xl backdrop-blur-sm">
           <div className="grid grid-cols-1 md:grid-cols-2">
 
-            {/* Left Panel - Transparent Window */}
             <div className="relative h-[300px] md:h-auto md:min-h-[700px] flex flex-col justify-end p-8 md:p-12 text-white">
-              {/* This creates the "see-through" effect */}
-
-
-              {/* Border on the right side to create cut-out illusion */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/30 backdrop-blur-[2px]" />
               <div className="absolute top-0 right-0 bottom-0 w-[2px] bg-white/40"></div>
 
               <div className="relative z-10">
                 <p className="text-xs md:text-sm font-medium tracking-wider text-white/90 uppercase mb-3">
-
+                  A WISE QUOTE
                 </p>
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 md:mb-6 drop-shadow-lg">
-                  Create<br />
-                  Your<br />
-                  Story
+                  Get<br />
+                  Everything<br />
+                  You Want
                 </h1>
                 <p className="text-sm md:text-base text-white/90 max-w-md drop-shadow-md">
-                  Your ultimate consumers are your users,<br className="hidden md:block" />
-                  not search engines.
+                  You can get everything you want if you work hard,<br className="hidden md:block" />
+                  trust the process, and stick to the plan.
                 </p>
               </div>
             </div>
 
-            {/* Right Panel - Login Form */}
             <div className="bg-white/95 backdrop-blur-md p-8 md:p-12 lg:p-16 flex flex-col justify-center">
               <div className="max-w-md mx-auto w-full">
-
-                {/* Logo */}
                 <div className="text-center mb-10">
-                  <div className="flex justify-center mb-4">
-
-                  </div>
                   <h2 className="text-3xl font-bold text-gray-900">
                     {isLogin ? 'Welcome Back' : 'Create Account'}
                   </h2>
@@ -192,17 +210,17 @@ export default function LoginPage() {
                       ? 'Enter your email and password to access your account'
                       : 'Sign up to get started with your account'
                     }
-                  </p>
-                </div>
+                  </p >
+                </div >
 
-                {/* Error Message */}
-                {error && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                    <p className="text-sm text-red-600">{error}</p>
-                  </div>
-                )}
+                {
+                  error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                      <p className="text-sm text-red-600">{error}</p>
+                    </div>
+                  )
+                }
 
-                {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {!isLogin && (
                     <div>

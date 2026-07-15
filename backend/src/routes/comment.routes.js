@@ -1,5 +1,5 @@
 import express from 'express';
-import { createComment, getCommentsByBlog, deleteComment } from '../services/comment.service.js';
+import { createComment, getCommentsByBlog, deleteComment, likeComment } from '../services/comment.service.js';
 import { protect } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
@@ -71,6 +71,27 @@ router.delete('/:commentId', protect, async (req, res, next) => {
                 message: error.message
             });
         }
+        next(error);
+    }
+});
+
+// Protected: Like/Unlike a comment
+router.put('/:commentId/like', protect, async (req, res, next) => {
+    try {
+        const comment = await likeComment(req.params.commentId, req.user._id);
+
+        if (!comment) {
+            return res.status(404).json({
+                success: false,
+                message: 'Comment not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: comment
+        });
+    } catch (error) {
         next(error);
     }
 });

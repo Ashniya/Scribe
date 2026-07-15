@@ -1,26 +1,39 @@
 import admin from '../config/firebase.js';
+import { findUserByFirebaseUid, createUser } from '../services/user.service.js';
 
 export const protect = async (req, res, next) => {
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
             const token = req.headers.authorization.split(' ')[1];
-            console.log('🔐 Token received, length:', token.length);
 
             // Verify Firebase token (Firebase used ONLY for auth)
-            console.log('🔍 Verifying Firebase token...');
             const decodedToken = await admin.auth().verifyIdToken(token);
-            console.log('✅ Token verified for user:', decodedToken.email);
 
-            // Attach user info from Firebase token directly
-            req.user = {
-                _id: decodedToken.uid,
-                uid: decodedToken.uid,
-                email: decodedToken.email,
-                displayName: decodedToken.name || decodedToken.email.split('@')[0],
-                photoURL: decodedToken.picture || null
-            };
+            // Fetch MongoDB User to ensure we have latest profile data (photoURL, displayName) and correct _id
+            const mongoUser = await findUserByFirebaseUid(decodedToken.uid);
 
-            console.log('✅ Authentication successful for:', req.user.email);
+            if (mongoUser) {
+                // Attach MongoDB user document
+                req.user = mongoUser;
+                // Ensure uid is available for compatibility
+                req.user.uid = mongoUser.firebaseUid;
+            } else {
+                // User authenticated in Firebase but not in MongoDB
+                // Create the user in MongoDB now (Auto-Sync)
+                console.log('✨ Creating new MongoDB user for Firebase UID:', decodedToken.uid);
+
+                const newUser = await createUser({
+                    firebaseUid: decodedToken.uid,
+                    email: decodedToken.email,
+                    displayName: decodedToken.name || decodedToken.email.split('@')[0],
+                    photoURL: decodedToken.picture || null,
+                    provider: 'firebase'
+                });
+
+                req.user = newUser;
+                console.log('✅ User created and synced:', newUser.username);
+            }
+
             next();
         } catch (error) {
             console.error('❌ Firebase auth error:', error.message);

@@ -13,6 +13,29 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+// Validate Firebase config
+const isConfigValid = firebaseConfig.apiKey &&
+  firebaseConfig.apiKey !== 'your-api-key-here' &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.authDomain !== 'your-project-id.firebaseapp.com';
+
+if (!isConfigValid) {
+  console.error(
+    '❌ Firebase configuration is missing or invalid!\n\n' +
+    'Please update your .env file with actual Firebase credentials.\n' +
+    'Get your credentials from: https://console.firebase.google.com/\n\n' +
+    'Required variables:\n' +
+    '- VITE_FIREBASE_API_KEY\n' +
+    '- VITE_FIREBASE_AUTH_DOMAIN\n' +
+    '- VITE_FIREBASE_PROJECT_ID\n' +
+    '- VITE_FIREBASE_STORAGE_BUCKET\n' +
+    '- VITE_FIREBASE_MESSAGING_SENDER_ID\n' +
+    '- VITE_FIREBASE_APP_ID\n' +
+    '- VITE_FIREBASE_MEASUREMENT_ID'
+  );
+}
+
+// Initialize Firebase
 let app;
 let analytics;
 let auth;

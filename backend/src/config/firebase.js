@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 // Load Firebase Admin Service Account
 const serviceAccountKey = JSON.parse(
-    fs.readFileSync(path.join(__dirname, '../../firebase-key.json'), 'utf8')
+    fs.readFileSync(path.join(__dirname, '../../ScribeServiceAccountKey.json'), 'utf8')
 );
 
 // Initialize Firebase Admin only if not already initialized

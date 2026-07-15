@@ -210,7 +210,7 @@ const Landing = () => {
                 Your digital sanctuary for thoughts, stories, and ideas. Where every word matters and every story finds its audience.
               </p>
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/dashboard')}
                 className="animate-fadeInUp animation-delay-700 group px-10 py-5 bg-gradient-to-r from-scribe-green to-scribe-sage text-white text-xl font-semibold rounded-full hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-3 mx-auto"
               >
                 <PenTool size={24} />

@@ -43,3 +43,24 @@ export const deleteComment = async (commentId, userId) => {
 
     return { deleted: true };
 };
+
+export const likeComment = async (commentId, userId) => {
+    const comment = await Comment.findById(commentId);
+    if (!comment) return null;
+
+    // Check if likes array exists, if not init
+    if (!comment.likes) comment.likes = [];
+
+    const index = comment.likes.indexOf(userId);
+    if (index === -1) {
+        // Like
+        comment.likes.push(userId);
+    } else {
+        // Unlike
+        comment.likes.splice(index, 1);
+    }
+
+    comment.likeCount = comment.likes.length;
+    await comment.save();
+    return comment;
+};
