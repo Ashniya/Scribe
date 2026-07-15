@@ -7,9 +7,14 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Read service account key (adjust path based on your folder structure)
-const serviceAccountPath = join(__dirname, '../../ScribeServiceAccountKey.json');
-const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+// Read service account key (from environment variable in production, or file locally)
+let serviceAccount;
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} else {
+  const serviceAccountPath = join(__dirname, '../../ScribeServiceAccountKey.json');
+  serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+}
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
