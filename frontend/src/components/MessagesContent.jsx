@@ -20,6 +20,7 @@ import {
     markConversationAsRead,
     getOrCreateConversation
 } from '../utils/messageapi';
+import { auth } from '../config/firebase';
 
 export default function MessagesContent({ initialConversationId }) {
     const { currentUser, mongoUser } = useAuth();
@@ -38,7 +39,7 @@ export default function MessagesContent({ initialConversationId }) {
         if (!currentUser) return;
 
         const initSocket = async () => {
-            const token = await currentUser.getIdToken();
+            const token = await auth.currentUser.getIdToken();
 
             const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
             const newSocket = io(socketUrl, {
