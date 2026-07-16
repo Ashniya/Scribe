@@ -2,8 +2,6 @@
 
 > A modern, full-stack blogging and social platform built for writers and readers to connect, share ideas, and engage in real-time.
 
-![Scribe Banner](https://via.placeholder.com/1200x400/10b981/ffffff?text=Scribe+-+Modern+Blogging+Platform)
-
 ## ✨ Unique Features
 
 - **Rich Blogging Experience**: Write, edit, publish, and format beautiful blogs with a rich text editor.
@@ -73,8 +71,7 @@ npm run dev
 
 ## 🤝 Developers
 
-- **taniyasharma3132**
 - **Ashniya**
-
-## 📜 Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
+- **Lynx2711**
+- **surakshasharm**
+- **taniyasharma3132**
