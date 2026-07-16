@@ -124,7 +124,7 @@ const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
       callback(null, true);
-    } else if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+    } else if (process.env.FRONTEND_URL && (origin === process.env.FRONTEND_URL || origin === process.env.FRONTEND_URL.replace(/\/$/, ''))) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
